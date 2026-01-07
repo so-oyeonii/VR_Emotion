@@ -19,6 +19,20 @@ class App {
      * 초기화
      */
     init() {
+        // DOM 요소 존재 확인
+        if (!document.getElementById('emotion-wheel')) {
+            console.error('Required DOM element "emotion-wheel" not found');
+            return;
+        }
+        if (!document.getElementById('intensity-slider')) {
+            console.error('Required DOM element "intensity-slider" not found');
+            return;
+        }
+        if (!document.getElementById('tetris-canvas')) {
+            console.error('Required DOM element "tetris-canvas" not found');
+            return;
+        }
+        
         // 모듈 인스턴스 생성
         this.emotionWheel = new EmotionWheel('emotion-wheel');
         this.intensitySlider = new IntensitySlider('intensity-slider', 'intensity-value');
@@ -79,8 +93,12 @@ class App {
         
         // 선택된 섹션 표시
         const selectedSection = document.getElementById(sectionId);
-        selectedSection.classList.remove('hidden');
-        selectedSection.classList.add('active');
+        if (selectedSection) {
+            selectedSection.classList.remove('hidden');
+            selectedSection.classList.add('active');
+        } else {
+            console.error(`Section with id '${sectionId}' not found`);
+        }
     }
     
     /**

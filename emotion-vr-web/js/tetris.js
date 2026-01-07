@@ -190,7 +190,9 @@ class Tetris {
      */
     calculateScore(linesCleared) {
         const baseScore = [0, 100, 300, 500, 800];
-        return baseScore[linesCleared] * this.level;
+        // 4줄 이상 클리어 시에도 안전하게 처리
+        const scoreIndex = Math.min(linesCleared, baseScore.length - 1);
+        return baseScore[scoreIndex] * this.level;
     }
     
     /**
