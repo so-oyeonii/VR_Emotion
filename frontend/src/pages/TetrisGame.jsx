@@ -1,14 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
+import useTetris from '../hooks/useTetris';
 import './TetrisGame.css';
 
 function TetrisGame() {
   const navigate = useNavigate();
   const { userData, setScreen } = useStore();
+  const canvasRef = useRef(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [showError, setShowError] = useState(false);
   const [countdown, setCountdown] = useState(60);
+  
+  const { score, level, lines, gameOver, isPaused, startGame, togglePause } = useTetris(canvasRef);
   
   useEffect(() => {
     // 사용자 데이터가 없으면 첫 화면으로
@@ -20,10 +24,11 @@ function TetrisGame() {
     // 자동으로 게임 시작
     const startTimer = setTimeout(() => {
       setGameStarted(true);
+      startGame();
     }, 1000);
     
     return () => clearTimeout(startTimer);
-  }, [userData.userId, navigate]);
+  }, [userData.userId, navigate, startGame]);
   
   useEffect(() => {
     if (!gameStarted) return;
@@ -66,36 +71,35 @@ function TetrisGame() {
           <>
             <div className="game-info">
               <div className="timer">시간: {countdown}초</div>
+              <div className="game-stats">
+                <div>점수: {score}</div>
+                <div>레벨: {level}</div>
+                <div>라인: {lines}</div>
+              </div>
               <div className="instruction">
-                게임을 즐겨보세요!<br />
-                (60초 후 자동으로 다음 단계로 이동합니다)
+                방향키: 이동/회전 | 스페이스: 즉시낙하
               </div>
             </div>
             
             <div className="game-board">
-              <div className="fake-tetris">
-                <div className="tetris-block"></div>
-                <div className="tetris-block"></div>
-                <div className="tetris-block"></div>
-                <div className="tetris-block"></div>
-                <div className="tetris-row">
-                  <div className="tetris-cell filled"></div>
-                  <div className="tetris-cell"></div>
-                  <div className="tetris-cell filled"></div>
-                  <div className="tetris-cell filled"></div>
+              <canvas ref={canvasRef} className="tetris-canvas" />
+              {gameOver && (
+                <div className="game-over-overlay">
+                  <button onClick={startGame} className="restart-btn">
+                    다시 시작
+                  </button>
                 </div>
-              </div>
-              <p className="game-notice">
-                🎮 실제 게임 구현은 이후 단계에서 완성됩니다
-              </p>
+              )}
             </div>
             
-            <button 
-              onClick={handleSkip}
-              className="skip-button"
-            >
-              다음으로 →
-            </button>
+            <div className="game-controls">
+              <button onClick={togglePause} className="control-btn">
+                {isPaused ? '계속하기' : '일시정지'}
+              </button>
+              <button onClick={handleSkip} className="skip-button">
+                다음으로 →
+              </button>
+            </div>
           </>
         )}
         
