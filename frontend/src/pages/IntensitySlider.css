@@ -36,39 +36,67 @@
 .intensity-list {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 3rem;
   margin-bottom: 2rem;
 }
 
 .intensity-item {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 1.5rem;
-  border-radius: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.intensity-header {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  margin-bottom: 1rem;
+  gap: 1.5rem;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
 }
 
-.emotion-badge {
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  color: white;
-  font-weight: bold;
-  font-size: 1.1rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+.intensity-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(100, 181, 246, 0.4);
+  box-shadow: 0 8px 30px rgba(100, 181, 246, 0.2);
+}
+
+.intensity-visual {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sphere-canvas {
+  display: block;
+  background: transparent;
+}
+
+.emotion-label-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.emotion-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(100, 181, 246, 0.8);
+}
+
+.slider-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .intensity-value {
-  font-size: 2rem;
-  font-weight: bold;
+  font-size: 1.3rem;
+  font-weight: 700;
   color: #64b5f6;
-  min-width: 50px;
-  text-align: right;
+  text-shadow: 0 0 10px rgba(100, 181, 246, 0.6);
 }
 
 .intensity-slider {

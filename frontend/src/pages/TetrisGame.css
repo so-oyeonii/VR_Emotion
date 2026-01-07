@@ -110,11 +110,106 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.95);
   display: flex;
   justify-content: center;
   align-items: center;
   border-radius: 10px;
+  z-index: 1000;
+}
+
+.game-over-content {
+  text-align: center;
+  padding: 2rem;
+  background: rgba(20, 20, 40, 0.9);
+  border-radius: 20px;
+  border: 2px solid rgba(100, 181, 246, 0.5);
+  max-width: 500px;
+}
+
+.game-over-content h2 {
+  color: #ff4444;
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  text-shadow: 0 0 20px rgba(255, 68, 68, 0.8);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.game-over-content .final-score {
+  color: #64b5f6;
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(100, 181, 246, 0.6);
+}
+
+.game-over-content .auto-transition {
+  color: #fff;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  opacity: 0.8;
+}
+
+.difficulty-prompt {
+  color: #64b5f6;
+  font-size: 1.3rem;
+  margin: 1.5rem 0;
+  font-weight: 600;
+}
+
+.difficulty-buttons {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.difficulty-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 30px;
+  border: none;
+  border-radius: 15px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  min-width: 150px;
+}
+
+.easy-btn {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+}
+
+.easy-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
+}
+
+.hard-btn {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+}
+
+.hard-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(244, 67, 54, 0.6);
+}
+
+.difficulty-desc {
+  font-size: 0.8rem;
+  font-weight: 400;
+  opacity: 0.9;
 }
 
 .restart-btn {

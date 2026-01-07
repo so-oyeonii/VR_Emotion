@@ -24,7 +24,7 @@ const COLORS = {
   'L': '#f0a000'
 };
 
-function useTetris(canvasRef) {
+function useTetris(canvasRef, difficulty = 'hard') {
   const [board, setBoard] = useState(() => 
     Array(ROWS).fill(null).map(() => Array(COLS).fill(0))
   );
@@ -35,8 +35,10 @@ function useTetris(canvasRef) {
   const [lines, setLines] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [lineAddCount, setLineAddCount] = useState(0);
   
   const gameLoopRef = useRef(null);
+  const lineAddTimerRef = useRef(null);
   
   // 랜덤 피스 생성
   const createRandomPiece = useCallback(() => {
@@ -109,6 +111,31 @@ function useTetris(canvasRef) {
     const baseScore = [0, 100, 300, 500, 800];
     const scoreIndex = Math.min(linesCleared, baseScore.length - 1);
     return baseScore[scoreIndex] * currentLevel;
+  }, []);
+  
+  // 하단에 랜덤 라인 추가 (난이도 증가)
+  const addBottomLine = useCallback(() => {
+    setBoard(prevBoard => {
+      const newBoard = [...prevBoard];
+      // 모든 라인을 한 칸씩 위로 이동
+      for (let y = 0; y < ROWS - 1; y++) {
+        newBoard[y] = [...newBoard[y + 1]];
+      }
+      // 하단에 새 라인 추가 (7~9개의 랜덤 블록)
+      const newLine = Array(COLS).fill(0);
+      const filledCount = 7 + Math.floor(Math.random() * 3); // 7~9개
+      const positions = [];
+      while (positions.length < filledCount) {
+        const pos = Math.floor(Math.random() * COLS);
+        if (!positions.includes(pos)) {
+          positions.push(pos);
+          newLine[pos] = '#666'; // 회색 블록
+        }
+      }
+      newBoard[ROWS - 1] = newLine;
+      return newBoard;
+    });
+    setLineAddCount(prev => prev + 1);
   }, []);
   
   // 새 피스 생성
@@ -368,15 +395,64 @@ function useTetris(canvasRef) {
     setLines(0);
     setGameOver(false);
     setIsPaused(false);
+    setLineAddCount(0);
     
     const { piece, x, y } = spawnPiece();
     setCurrentPiece(piece);
     setPosition({ x, y });
-  }, [spawnPiece]);
+    
+    // 자동 라인 추가 타이머 시작
+    if (lineAddTimerRef.current) {
+      clearTimeout(lineAddTimerRef.current);
+    }
+    
+    const scheduleNextLine = (count) => {
+      let delay;
+      if (difficulty === 'easy') {
+        // 쉬움 모드: 라인 추가 없음
+        return;
+      }
+      
+      // 어려움 모드
+      if (count === 0) {
+        delay = 10000; // 첫 번째: 10초 후
+      } else if (count === 1) {
+        delay = 5000; // 두 번째: 5초 후
+      } else {
+        delay = 1000; // 이후: 1초마다
+      }
+      
+      lineAddTimerRef.current = setTimeout(() => {
+        if (!document.hidden) { // 탭이 활성화되어 있을 때만
+          addBottomLine();
+          scheduleNextLine(count + 1);
+        }
+      }, delay);
+    };
+    
+    scheduleNextLine(0);
+  }, [spawnPiece, addBottomLine]);
   
   // 일시정지
   const togglePause = useCallback(() => {
     setIsPaused(prev => !prev);
+  }, []);
+  
+  // 게임오버 시 타이머 정리
+  useEffect(() => {
+    if (gameOver && lineAddTimerRef.current) {
+      clearTimeout(lineAddTimerRef.current);
+      lineAddTimerRef.current = null;
+    }
+  }, [gameOver]);
+  
+  // cleanup
+  useEffect(() => {
+    return () => {
+      if (lineAddTimerRef.current) {
+        clearTimeout(lineAddTimerRef.current);
+      }
+    };
   }, []);
   
   return {

@@ -11,8 +11,11 @@ function TetrisGame() {
   const [gameStarted, setGameStarted] = useState(false);
   const [showError, setShowError] = useState(false);
   const [countdown, setCountdown] = useState(60);
+  const [gameOverTimer, setGameOverTimer] = useState(10);
+  const [difficulty, setDifficulty] = useState('hard');
+  const [showDifficultySelect, setShowDifficultySelect] = useState(false);
   
-  const { score, level, lines, gameOver, isPaused, startGame, togglePause } = useTetris(canvasRef);
+  const { score, level, lines, gameOver, isPaused, startGame, togglePause } = useTetris(canvasRef, difficulty);
   
   useEffect(() => {
     // 사용자 데이터가 없으면 첫 화면으로
@@ -37,7 +40,7 @@ function TetrisGame() {
       setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(timer);
-          // 60초 후 시스템 에러 발생
+          // 60초 후 무조건 오류 화면 표시
           setShowError(true);
           setTimeout(() => {
             setScreen(2);
@@ -52,9 +55,29 @@ function TetrisGame() {
     return () => clearInterval(timer);
   }, [gameStarted, navigate, setScreen]);
   
+  // 게임오버 시 난이도 선택 화면 즉시 표시
+  useEffect(() => {
+    if (gameOver) {
+      setShowDifficultySelect(true);
+    } else {
+      setShowDifficultySelect(false);
+      setGameOverTimer(10);
+    }
+  }, [gameOver]);
+  
   const handleSkip = () => {
     setScreen(2);
     navigate('/emotion');
+  };
+  
+  const handleRestartWithDifficulty = (newDifficulty) => {
+    setDifficulty(newDifficulty);
+    setShowDifficultySelect(false);
+    setGameOverTimer(10);
+    // 난이도 변경 후 즉시 게임 재시작
+    setTimeout(() => {
+      startGame();
+    }, 50);
   };
   
   return (
@@ -70,7 +93,8 @@ function TetrisGame() {
         ) : (
           <>
             <div className="game-info">
-              <div className="timer">시간: {countdown}초</div>
+              {/* 타이머는 숨김 처리 - 실험 참가자에게 시간 압박감 제거 */}
+              {/* <div className="timer">시간: {countdown}초</div> */}
               <div className="game-stats">
                 <div>점수: {score}</div>
                 <div>레벨: {level}</div>
@@ -85,9 +109,25 @@ function TetrisGame() {
               <canvas ref={canvasRef} className="tetris-canvas" />
               {gameOver && (
                 <div className="game-over-overlay">
-                  <button onClick={startGame} className="restart-btn">
-                    다시 시작
-                  </button>
+                  <div className="game-over-content">
+                    <h2>게임 종료!</h2>
+                    <p className="final-score">최종 점수: {score}</p>
+                    <p className="difficulty-prompt">난이도를 선택하고 다시 도전하세요!</p>
+                    <div className="difficulty-buttons">
+                      <button 
+                        onClick={() => handleRestartWithDifficulty('easy')} 
+                        className="difficulty-btn easy-btn"
+                      >
+                        🟢 쉬움
+                      </button>
+                      <button 
+                        onClick={() => handleRestartWithDifficulty('hard')} 
+                        className="difficulty-btn hard-btn"
+                      >
+                        🔴 어려움
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

@@ -22,12 +22,22 @@ const useStore = create((set) => ({
   setUserData: (data) => set({ userData: data }),
   
   addSelectedEmotion: (emotion, color) => set((state) => {
-    // 최대 3개까지만
-    if (state.selectedEmotions.length >= 3) {
+    // 최대 5개까지 (직접 선택 3개 + 룰렛 2개)
+    if (state.selectedEmotions.length >= 5) {
+      console.log('이미 5개 선택됨, 추가 불가');
       return state;
     }
+    
+    // 중복 체크
+    const isDuplicate = state.selectedEmotions.some(e => e.emotion === emotion);
+    if (isDuplicate) {
+      console.log('중복된 감정:', emotion);
+      return state;
+    }
+    
+    console.log('감정 추가 성공:', emotion, color);
     return {
-      selectedEmotions: [...state.selectedEmotions, { emotion, color }]
+      selectedEmotions: [...state.selectedEmotions, { emotion, color, sequence_order: state.selectedEmotions.length + 1 }]
     };
   }),
   
