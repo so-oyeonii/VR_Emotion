@@ -74,10 +74,13 @@ class App {
         // 모든 섹션 숨기기
         document.querySelectorAll('.section').forEach(section => {
             section.classList.remove('active');
+            section.classList.add('hidden');
         });
         
         // 선택된 섹션 표시
-        document.getElementById(sectionId).classList.add('active');
+        const selectedSection = document.getElementById(sectionId);
+        selectedSection.classList.remove('hidden');
+        selectedSection.classList.add('active');
     }
     
     /**
