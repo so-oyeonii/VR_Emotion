@@ -45,7 +45,7 @@ function TetrisGame() {
           setTimeout(() => {
             setScreen(2);
             navigate('/emotion');
-          }, 3000);
+          }, 10000);
           return 0;
         }
         return prev - 1;
