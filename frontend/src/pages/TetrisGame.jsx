@@ -12,7 +12,7 @@ function TetrisGame() {
   const [showError, setShowError] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const [gameOverTimer, setGameOverTimer] = useState(10);
-  const [difficulty, setDifficulty] = useState('hard');
+  const [difficulty, setDifficulty] = useState('medium');
   const [showDifficultySelect, setShowDifficultySelect] = useState(false);
   
   const { score, level, lines, gameOver, isPaused, startGame, togglePause } = useTetris(canvasRef, difficulty);
@@ -71,6 +71,7 @@ function TetrisGame() {
   };
   
   const handleRestartWithDifficulty = (newDifficulty) => {
+    console.log(`🎯 난이도 변경: ${difficulty} -> ${newDifficulty}`);
     setDifficulty(newDifficulty);
     setShowDifficultySelect(false);
     setGameOverTimer(10);

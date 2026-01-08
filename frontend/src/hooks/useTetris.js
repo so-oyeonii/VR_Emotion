@@ -389,6 +389,7 @@ function useTetris(canvasRef, difficulty = 'hard') {
   
   // 게임 시작
   const startGame = useCallback(() => {
+    console.log(`🎮 게임 시작! 난이도: ${difficulty}`);
     setBoard(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
     setScore(0);
     setLevel(1);
@@ -408,18 +409,41 @@ function useTetris(canvasRef, difficulty = 'hard') {
     
     const scheduleNextLine = (count) => {
       let delay;
-      if (difficulty === 'easy') {
-        // 쉬움 모드: 라인 추가 없음
-        return;
-      }
       
-      // 어려움 모드
-      if (count === 0) {
-        delay = 10000; // 첫 번째: 10초 후
-      } else if (count === 1) {
-        delay = 5000; // 두 번째: 5초 후
+      if (difficulty === 'easy') {
+        // 🟢 쉬움 모드: 10초마다 한 줄씩
+        delay = 10000;
+        if (count === 0) {
+          console.log('🟢 쉬움 모드: 10초마다 줄 추가');
+        }
+      } else if (difficulty === 'medium') {
+        // 🟡 보통 모드 (처음 시작): 10초 -> 5초 -> 3초 -> 3초...
+        if (count === 0) {
+          delay = 10000; // 첫 번째: 10초 후
+          console.log('🟡 보통 모드: 10초 후 첫 줄 추가');
+        } else if (count === 1) {
+          delay = 5000; // 두 번째: 5초 후
+          console.log('🟡 보통 모드: 5초 후 둘째 줄 추가');
+        } else {
+          delay = 3000; // 이후: 3초마다
+          if (count === 2) {
+            console.log('🟡 보통 모드: 이후 3초마다 줄 추가');
+          }
+        }
       } else {
-        delay = 1000; // 이후: 1초마다
+        // 🔴 어려움 모드: 10초 -> 5초 -> 1초 -> 1초...
+        if (count === 0) {
+          delay = 10000; // 첫 번째: 10초 후
+          console.log('🔴 어려움 모드: 10초 후 첫 줄 추가');
+        } else if (count === 1) {
+          delay = 5000; // 두 번째: 5초 후
+          console.log('🔴 어려움 모드: 5초 후 둘째 줄 추가');
+        } else {
+          delay = 1000; // 이후: 1초마다
+          if (count === 2) {
+            console.log('🔴 어려움 모드: 이후 1초마다 줄 추가');
+          }
+        }
       }
       
       lineAddTimerRef.current = setTimeout(() => {
@@ -431,7 +455,7 @@ function useTetris(canvasRef, difficulty = 'hard') {
     };
     
     scheduleNextLine(0);
-  }, [spawnPiece, addBottomLine]);
+  }, [spawnPiece, addBottomLine, difficulty]);
   
   // 일시정지
   const togglePause = useCallback(() => {
