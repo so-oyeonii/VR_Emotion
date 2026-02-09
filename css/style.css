@@ -1,0 +1,239 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #1a1a2e;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: #e0e0e0;
+    overflow: hidden;
+}
+
+#game-container {
+    position: relative;
+    width: 800px;
+    height: 600px;
+    background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+/* Timer */
+#timer {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    font-size: 20px;
+    font-weight: 600;
+    color: #a0a0c0;
+    z-index: 5;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Game area */
+#game-area {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+/* Players */
+.player {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 2;
+    transition: transform 0.15s ease;
+}
+
+.player.clickable {
+    cursor: pointer;
+}
+
+.player.clickable:hover {
+    transform: scale(1.1);
+}
+
+.player.clickable:hover .player-avatar {
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+}
+
+.player-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow 0.2s ease;
+    position: relative;
+}
+
+.player-avatar::after {
+    content: '';
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.player-avatar::before {
+    content: '';
+    position: absolute;
+    width: 36px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50% 50% 0 0;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.player-avatar.blue {
+    background: linear-gradient(135deg, #2196F3, #1565C0);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+}
+
+.player-avatar.green {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.player-avatar.red {
+    background: linear-gradient(135deg, #FF5722, #D84315);
+    box-shadow: 0 4px 12px rgba(255, 87, 34, 0.4);
+}
+
+.player-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #c0c0d8;
+    text-align: center;
+}
+
+/* Player positions */
+#player2 {
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+#player2.clickable:hover {
+    transform: translateX(-50%) scale(1.1);
+}
+
+#player1 {
+    bottom: 60px;
+    left: 120px;
+}
+
+#player-me {
+    bottom: 60px;
+    right: 120px;
+}
+
+/* Ball holder indicator */
+.player.has-ball .player-avatar {
+    animation: pulse-glow 1s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 8px rgba(255, 255, 255, 0.2); }
+    50% { box-shadow: 0 0 20px rgba(255, 255, 255, 0.5); }
+}
+
+/* Ball */
+#ball {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    background: radial-gradient(circle at 35% 35%, #fff8e1, #ffc107, #ff8f00);
+    border-radius: 50%;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.6);
+    pointer-events: none;
+    transition: none;
+}
+
+#ball.hidden {
+    display: none;
+}
+
+/* Overlays */
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 10, 30, 0.92);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.overlay.hidden {
+    display: none;
+}
+
+.overlay-content {
+    text-align: center;
+    padding: 40px;
+}
+
+.overlay-content h1 {
+    font-size: 36px;
+    color: #ffffff;
+    margin-bottom: 16px;
+    font-weight: 700;
+}
+
+.overlay-content p {
+    font-size: 16px;
+    color: #b0b0c8;
+    margin-bottom: 12px;
+    line-height: 1.6;
+}
+
+.overlay-content button {
+    margin-top: 24px;
+    padding: 14px 40px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
+    background: linear-gradient(135deg, #5c6bc0, #3949ab);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.overlay-content button:hover {
+    background: linear-gradient(135deg, #7986cb, #5c6bc0);
+    transform: translateY(-1px);
+}
+
+.overlay-content button:active {
+    transform: translateY(0);
+}
+
+/* Waiting indicator for the user */
+#player-me.waiting-for-input .player-name::after {
+    content: ' (클릭하세요!)';
+    color: #ffc107;
+    font-size: 12px;
+}
