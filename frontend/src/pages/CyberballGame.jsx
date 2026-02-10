@@ -10,15 +10,20 @@ function CyberballGame() {
   const canvasRef = useRef(null);
   const [showCoverStory, setShowCoverStory] = useState(true);
   const [showLoading, setShowLoading] = useState(false);
+  const [readyToStart, setReadyToStart] = useState(false);
 
   const {
     gameStarted,
     gameOver,
     waitingForPlayer,
     lastMessage,
+    timeLeft,
+    phase,
     startGame,
+    throwTo,
     CANVAS_WIDTH,
     CANVAS_HEIGHT,
+    GAME_DURATION,
   } = useCyberball(canvasRef);
 
   // 사용자 데이터 체크
@@ -27,6 +32,14 @@ function CyberballGame() {
       navigate('/');
     }
   }, [userData.userId, navigate]);
+
+  // 캔버스가 보이고 readyToStart가 되면 게임 시작 (useEffect로 DOM 커밋 보장)
+  useEffect(() => {
+    if (readyToStart && !showCoverStory && !showLoading) {
+      startGame();
+      setReadyToStart(false);
+    }
+  }, [readyToStart, showCoverStory, showLoading, startGame]);
 
   // 게임 종료 시 자동 이동
   useEffect(() => {
@@ -46,15 +59,16 @@ function CyberballGame() {
     // 로딩 표시 후 2초 뒤 게임 시작
     setTimeout(() => {
       setShowLoading(false);
-      // 다음 프레임에서 startGame을 호출해야 캔버스가 보인 상태
-      requestAnimationFrame(() => {
-        startGame();
-      });
+      setReadyToStart(true);
     }, 2000);
   };
 
   // 캔버스가 보이는지 여부
   const canvasVisible = !showCoverStory && !showLoading;
+
+  // 남은 시간 포맷
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
 
   return (
     <div className="cyberball-container">
@@ -68,12 +82,12 @@ function CyberballGame() {
               </p>
               <p className="cover-desc">
                 다른 두 명의 참가자와 함께 공 던지기 게임을 합니다.
-                공이 당신에게 오면, 다른 참가자를 클릭하여 공을 던져주세요.
+                공이 당신에게 오면, 아래 버튼을 눌러 공을 던져주세요.
               </p>
               <div className="cover-rules">
                 <div className="rule-item">
                   <span className="rule-icon">1</span>
-                  <span>공이 오면 다른 참가자를 클릭</span>
+                  <span>공이 오면 던질 상대를 선택</span>
                 </div>
                 <div className="rule-item">
                   <span className="rule-icon">2</span>
@@ -100,7 +114,11 @@ function CyberballGame() {
 
         {/* 캔버스는 항상 DOM에 존재하지만, 게임 화면이 아닐 때는 숨김 */}
         <div style={{ display: canvasVisible ? 'block' : 'none' }}>
-          <div className="game-info">
+          {/* 상단 정보바 */}
+          <div className="game-header">
+            <div className="timer-display">
+              {minutes}:{seconds.toString().padStart(2, '0')}
+            </div>
             {lastMessage && (
               <div className={`game-message ${waitingForPlayer ? 'highlight' : ''}`}>
                 {lastMessage}
@@ -121,6 +139,33 @@ function CyberballGame() {
                 aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
               }}
             />
+          </div>
+
+          {/* 던지기 버튼 영역 */}
+          <div className={`throw-buttons ${waitingForPlayer ? 'active' : ''}`}>
+            {waitingForPlayer ? (
+              <>
+                <p className="throw-prompt">공을 던질 상대를 선택하세요!</p>
+                <div className="throw-btn-group">
+                  <button
+                    className="throw-btn throw-btn-b"
+                    onClick={() => throwTo('agent1')}
+                  >
+                    <span className="throw-btn-emoji">😊</span>
+                    <span className="throw-btn-name">참가자 B</span>
+                  </button>
+                  <button
+                    className="throw-btn throw-btn-c"
+                    onClick={() => throwTo('agent2')}
+                  >
+                    <span className="throw-btn-emoji">😊</span>
+                    <span className="throw-btn-name">참가자 C</span>
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="throw-wait">다른 참가자가 공을 던지고 있습니다...</p>
+            )}
           </div>
         </div>
 

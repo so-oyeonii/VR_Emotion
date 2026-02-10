@@ -443,6 +443,11 @@ export function useCyberball(canvasRef) {
     aiTimerRef.current = setTimeout(() => aiThrowRef.current?.(), delay);
   }, [canvasRef, draw]);
 
+  // 외부에서 호출 가능한 던지기 함수
+  const throwTo = useCallback((targetKey) => {
+    playerThrowRef.current?.(targetKey);
+  }, []);
+
   return {
     gameStarted,
     gameOver,
@@ -455,6 +460,7 @@ export function useCyberball(canvasRef) {
     lastMessage,
     phase,
     startGame,
+    throwTo,
     CANVAS_WIDTH,
     CANVAS_HEIGHT,
     GAME_DURATION,
