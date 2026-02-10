@@ -25,7 +25,7 @@ function lightenColor(hex, amount) {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-function drawBall(ctx, x, y) {
+function drawBallShape(ctx, x, y) {
   ctx.beginPath();
   ctx.ellipse(x, y + BALL_RADIUS + 5, BALL_RADIUS * 0.7, 3, 0, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
@@ -56,6 +56,7 @@ export function useCyberball(canvasRef) {
   const [lastMessage, setLastMessage] = useState('');
   const [phase, setPhase] = useState('inclusion');
 
+  // 모든 뮤터블 게임 상태를 ref에 보관 (리렌더링 없이 접근)
   const stateRef = useRef({
     ballX: POSITIONS.agent1.x,
     ballY: POSITIONS.agent1.y,
@@ -76,14 +77,21 @@ export function useCyberball(canvasRef) {
   const animFrameRef = useRef(null);
   const timerRef = useRef(null);
   const aiTimerRef = useRef(null);
-  const aiThrowRef = useRef(null);
 
+  // AI throw를 ref로 저장 (순환 의존 방지)
+  const aiThrowRef = useRef(null);
+  // playerThrow도 ref로 저장 (이벤트 핸들러에서 최신 참조)
+  const playerThrowRef = useRef(null);
+
+  // === 캔버스 그리기 ===
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
     const s = stateRef.current;
 
+    // 배경
     const bgGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
     bgGrad.addColorStop(0, '#0f1923');
     bgGrad.addColorStop(1, '#1a1a2e');
@@ -93,13 +101,13 @@ export function useCyberball(canvasRef) {
     // 경기장 원
     ctx.beginPath();
     ctx.ellipse(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10, 195, 175, 0, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(100, 181, 246, 0.06)';
+    ctx.strokeStyle = 'rgba(100, 181, 246, 0.08)';
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // 연결선
+    // 연결선 (점선)
     ctx.setLineDash([4, 6]);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
     ctx.lineWidth = 1;
     const posArr = [POSITIONS.player, POSITIONS.agent1, POSITIONS.agent2];
     for (let i = 0; i < posArr.length; i++) {
@@ -112,27 +120,30 @@ export function useCyberball(canvasRef) {
     }
     ctx.setLineDash([]);
 
-    // 플레이어 그리기
+    // 플레이어 3명 그리기
     Object.entries(POSITIONS).forEach(([key, pos]) => {
       const isCurrent = s.possession === key;
       const isHover = s.highlightedAgent === key;
       const isMe = key === 'player';
 
+      // 소유자 글로우
       if (isCurrent && !s.waitingForPlayer) {
         ctx.beginPath();
-        ctx.arc(pos.x, pos.y, PLAYER_RADIUS + 10, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 215, 0, 0.10)';
+        ctx.arc(pos.x, pos.y, PLAYER_RADIUS + 12, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.12)';
         ctx.fill();
       }
 
+      // 호버 링
       if (isHover && s.waitingForPlayer && !isMe) {
         ctx.beginPath();
-        ctx.arc(pos.x, pos.y, PLAYER_RADIUS + 7, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)';
-        ctx.lineWidth = 2.5;
+        ctx.arc(pos.x, pos.y, PLAYER_RADIUS + 8, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 215, 0, 0.7)';
+        ctx.lineWidth = 3;
         ctx.stroke();
       }
 
+      // 아바타 원
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, PLAYER_RADIUS, 0, Math.PI * 2);
       const grad = ctx.createRadialGradient(pos.x - 10, pos.y - 10, 4, pos.x, pos.y, PLAYER_RADIUS);
@@ -140,38 +151,41 @@ export function useCyberball(canvasRef) {
       grad.addColorStop(1, pos.color);
       ctx.fillStyle = grad;
       ctx.fill();
-      ctx.strokeStyle = isCurrent ? '#FFD700' : 'rgba(255,255,255,0.2)';
+      ctx.strokeStyle = isCurrent ? '#FFD700' : 'rgba(255,255,255,0.25)';
       ctx.lineWidth = isCurrent ? 3 : 1.5;
       ctx.stroke();
 
-      // 사람 아이콘 (AI도 사람처럼 보이게)
+      // 아이콘 (모두 사람처럼)
       ctx.font = '24px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('😊', pos.x, pos.y - 1);
+      ctx.fillText(isMe ? '🙂' : '😊', pos.x, pos.y - 1);
 
+      // 이름
       ctx.fillStyle = '#ccc';
-      ctx.font = 'bold 12px "Segoe UI", Arial, sans-serif';
-      ctx.fillText(pos.label, pos.x, pos.y + PLAYER_RADIUS + 16);
+      ctx.font = 'bold 13px "Segoe UI", Arial, sans-serif';
+      ctx.fillText(pos.label, pos.x, pos.y + PLAYER_RADIUS + 18);
 
       if (isMe) {
         ctx.fillStyle = 'rgba(74, 144, 217, 0.7)';
         ctx.font = '10px "Segoe UI", Arial, sans-serif';
-        ctx.fillText('(나)', pos.x, pos.y + PLAYER_RADIUS + 29);
+        ctx.fillText('(나)', pos.x, pos.y + PLAYER_RADIUS + 32);
       }
     });
 
     // 공
     if (s.waitingForPlayer && !s.isAnimating) {
-      const py = POSITIONS.player.y - PLAYER_RADIUS - 22;
-      drawBall(ctx, POSITIONS.player.x, py);
+      // 플레이어 머리 위에 공 표시
+      const py = POSITIONS.player.y - PLAYER_RADIUS - 24;
+      drawBallShape(ctx, POSITIONS.player.x, py);
 
-      ctx.fillStyle = 'rgba(255, 215, 0, 0.8)';
-      ctx.font = 'bold 14px "Segoe UI", Arial, sans-serif';
+      // 안내 텍스트
+      ctx.fillStyle = 'rgba(255, 215, 0, 0.9)';
+      ctx.font = 'bold 15px "Segoe UI", Arial, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('공을 던질 상대를 클릭하세요!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
+      ctx.fillText('공을 던질 상대를 클릭하세요!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 35);
     } else {
-      drawBall(ctx, s.ballX, s.ballY);
+      drawBallShape(ctx, s.ballX, s.ballY);
     }
 
     // 게임 오버
@@ -181,10 +195,14 @@ export function useCyberball(canvasRef) {
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 28px "Segoe UI", Arial, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('게임이 종료되었습니다', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+      ctx.fillText('게임이 종료되었습니다', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 10);
+      ctx.font = '14px "Segoe UI", Arial, sans-serif';
+      ctx.fillStyle = '#aaa';
+      ctx.fillText('잠시 후 다음 단계로 이동합니다...', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
     }
   }, [canvasRef]);
 
+  // === 공 애니메이션 ===
   const animateBall = useCallback((fromKey, toKey, onComplete) => {
     const s = stateRef.current;
     const from = POSITIONS[fromKey];
@@ -224,7 +242,7 @@ export function useCyberball(canvasRef) {
     animFrameRef.current = requestAnimationFrame(animate);
   }, [draw]);
 
-  // AI throw (ref pattern)
+  // === AI throw (ref에 저장) ===
   useEffect(() => {
     aiThrowRef.current = () => {
       const s = stateRef.current;
@@ -236,10 +254,8 @@ export function useCyberball(canvasRef) {
 
       let target;
       if (s.phase === 'inclusion') {
-        // 포함 단계: ~33% 균등 배분
         target = Math.random() < 0.35 ? 'player' : otherAgent;
       } else {
-        // 배제 단계: 10% 이하
         target = Math.random() < 0.08 ? 'player' : otherAgent;
       }
 
@@ -264,87 +280,113 @@ export function useCyberball(canvasRef) {
     };
   }, [animateBall]);
 
-  const playerThrow = useCallback((targetKey) => {
-    const s = stateRef.current;
-    if (!s.waitingForPlayer || s.isAnimating || s.gameOver) return;
-    if (targetKey === 'player') return;
+  // === 플레이어 던지기 (ref에 저장) ===
+  useEffect(() => {
+    playerThrowRef.current = (targetKey) => {
+      const s = stateRef.current;
+      if (!s.waitingForPlayer || s.isAnimating || s.gameOver) return;
+      if (targetKey === 'player') return;
 
-    s.waitingForPlayer = false;
-    s.throwCount++;
-    s.totalThrows++;
-    setWaitingForPlayer(false);
-    setThrowCount(s.throwCount);
-    setTotalThrows(s.totalThrows);
-    setLastMessage(`${POSITIONS[targetKey].label}에게 공을 던졌습니다`);
+      s.waitingForPlayer = false;
+      s.throwCount++;
+      s.totalThrows++;
+      setWaitingForPlayer(false);
+      setThrowCount(s.throwCount);
+      setTotalThrows(s.totalThrows);
+      setLastMessage(`${POSITIONS[targetKey].label}에게 공을 던졌습니다`);
 
-    animateBall('player', targetKey, () => {
-      s.possession = targetKey;
-      setPossession(targetKey);
-      const delay = 500 + Math.random() * 700;
-      aiTimerRef.current = setTimeout(() => aiThrowRef.current?.(), delay);
-    });
+      animateBall('player', targetKey, () => {
+        s.possession = targetKey;
+        setPossession(targetKey);
+        const delay = 500 + Math.random() * 700;
+        aiTimerRef.current = setTimeout(() => aiThrowRef.current?.(), delay);
+      });
+    };
   }, [animateBall]);
 
-  const handleCanvasClick = useCallback((e) => {
-    const s = stateRef.current;
-    if (!s.waitingForPlayer || s.isAnimating || s.gameOver) return;
-
+  // === 캔버스 이벤트 핸들러 (직접 등록) ===
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = CANVAS_WIDTH / rect.width;
-    const scaleY = CANVAS_HEIGHT / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
+    const handleClick = (e) => {
+      const s = stateRef.current;
+      if (!s.waitingForPlayer || s.isAnimating || s.gameOver) return;
 
-    for (const [key, pos] of Object.entries(POSITIONS)) {
-      if (key === 'player') continue;
-      const dx = x - pos.x;
-      const dy = y - pos.y;
-      if (Math.sqrt(dx * dx + dy * dy) < PLAYER_RADIUS + 18) {
-        playerThrow(key);
-        return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = CANVAS_WIDTH / rect.width;
+      const scaleY = CANVAS_HEIGHT / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+
+      for (const [key, pos] of Object.entries(POSITIONS)) {
+        if (key === 'player') continue;
+        const dx = x - pos.x;
+        const dy = y - pos.y;
+        if (Math.sqrt(dx * dx + dy * dy) < PLAYER_RADIUS + 20) {
+          playerThrowRef.current?.(key);
+          return;
+        }
       }
-    }
-  }, [canvasRef, playerThrow]);
+    };
 
-  const handleCanvasMouseMove = useCallback((e) => {
-    const s = stateRef.current;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const handleMouseMove = (e) => {
+      const s = stateRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = CANVAS_WIDTH / rect.width;
+      const scaleY = CANVAS_HEIGHT / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
 
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = CANVAS_WIDTH / rect.width;
-    const scaleY = CANVAS_HEIGHT / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-
-    let found = null;
-    for (const [key, pos] of Object.entries(POSITIONS)) {
-      if (key === 'player') continue;
-      const dx = x - pos.x;
-      const dy = y - pos.y;
-      if (Math.sqrt(dx * dx + dy * dy) < PLAYER_RADIUS + 18) {
-        found = key;
-        break;
+      let found = null;
+      for (const [key, pos] of Object.entries(POSITIONS)) {
+        if (key === 'player') continue;
+        const dx = x - pos.x;
+        const dy = y - pos.y;
+        if (Math.sqrt(dx * dx + dy * dy) < PLAYER_RADIUS + 20) {
+          found = key;
+          break;
+        }
       }
-    }
 
-    if (s.highlightedAgent !== found) {
-      s.highlightedAgent = found;
-      canvas.style.cursor = (found && s.waitingForPlayer) ? 'pointer' : 'default';
-      draw();
-    }
+      if (s.highlightedAgent !== found) {
+        s.highlightedAgent = found;
+        canvas.style.cursor = (found && s.waitingForPlayer) ? 'pointer' : 'default';
+        draw();
+      }
+    };
+
+    canvas.addEventListener('click', handleClick);
+    canvas.addEventListener('mousemove', handleMouseMove);
+
+    // 초기 그리기
+    draw();
+
+    return () => {
+      canvas.removeEventListener('click', handleClick);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      cancelAnimationFrame(animFrameRef.current);
+      clearInterval(timerRef.current);
+      clearTimeout(aiTimerRef.current);
+    };
   }, [canvasRef, draw]);
 
+  // === 게임 시작 ===
   const startGame = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      console.warn('Canvas not available yet');
+      return;
+    }
+
     const s = stateRef.current;
 
+    // 이전 게임 정리
     clearInterval(timerRef.current);
     clearTimeout(aiTimerRef.current);
     cancelAnimationFrame(animFrameRef.current);
 
+    // 상태 초기화
     s.gameStarted = true;
     s.gameOver = false;
     s.possession = 'agent1';
@@ -370,12 +412,13 @@ export function useCyberball(canvasRef) {
     setWaitingForPlayer(false);
     setLastMessage('게임이 시작되었습니다!');
 
+    // 타이머
     timerRef.current = setInterval(() => {
       s.elapsedTime++;
       s.timeLeft = GAME_DURATION - s.elapsedTime;
       setTimeLeft(s.timeLeft);
 
-      // 2분(120초) 후 배제 단계로 전환
+      // 2분 후 배제 단계 전환
       if (s.elapsedTime >= INCLUSION_DURATION && s.phase === 'inclusion') {
         s.phase = 'exclusion';
         setPhase('exclusion');
@@ -392,30 +435,13 @@ export function useCyberball(canvasRef) {
       }
     }, 1000);
 
+    // 초기 그리기
     draw();
 
+    // 첫 AI 던지기
     const delay = 800 + Math.random() * 500;
     aiTimerRef.current = setTimeout(() => aiThrowRef.current?.(), delay);
-  }, [draw]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    canvas.width = CANVAS_WIDTH;
-    canvas.height = CANVAS_HEIGHT;
-    canvas.addEventListener('click', handleCanvasClick);
-    canvas.addEventListener('mousemove', handleCanvasMouseMove);
-    draw();
-
-    return () => {
-      canvas.removeEventListener('click', handleCanvasClick);
-      canvas.removeEventListener('mousemove', handleCanvasMouseMove);
-      cancelAnimationFrame(animFrameRef.current);
-      clearInterval(timerRef.current);
-      clearTimeout(aiTimerRef.current);
-    };
-  }, [canvasRef, handleCanvasClick, handleCanvasMouseMove, draw]);
+  }, [canvasRef, draw]);
 
   return {
     gameStarted,
@@ -429,7 +455,6 @@ export function useCyberball(canvasRef) {
     lastMessage,
     phase,
     startGame,
-    playerThrow,
     CANVAS_WIDTH,
     CANVAS_HEIGHT,
     GAME_DURATION,

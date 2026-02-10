@@ -9,14 +9,11 @@ function CyberballGame() {
   const { userData, setScreen } = useStore();
   const canvasRef = useRef(null);
   const [showCoverStory, setShowCoverStory] = useState(true);
-  const [autoStarted, setAutoStarted] = useState(false);
+  const [showLoading, setShowLoading] = useState(false);
 
   const {
     gameStarted,
     gameOver,
-    throwCount,
-    playerReceiveCount,
-    totalThrows,
     waitingForPlayer,
     lastMessage,
     startGame,
@@ -44,16 +41,25 @@ function CyberballGame() {
 
   const handleStartGame = () => {
     setShowCoverStory(false);
+    setShowLoading(true);
+
+    // 로딩 표시 후 2초 뒤 게임 시작
     setTimeout(() => {
-      setAutoStarted(true);
-      startGame();
+      setShowLoading(false);
+      // 다음 프레임에서 startGame을 호출해야 캔버스가 보인 상태
+      requestAnimationFrame(() => {
+        startGame();
+      });
     }, 2000);
   };
+
+  // 캔버스가 보이는지 여부
+  const canvasVisible = !showCoverStory && !showLoading;
 
   return (
     <div className="cyberball-container">
       <div className="cyberball-panel">
-        {showCoverStory ? (
+        {showCoverStory && (
           <div className="cover-story">
             <h1 className="cover-title">공 던지기 게임</h1>
             <div className="cover-content">
@@ -83,35 +89,40 @@ function CyberballGame() {
               게임 시작
             </button>
           </div>
-        ) : !autoStarted ? (
+        )}
+
+        {showLoading && (
           <div className="loading-screen">
             <div className="loading-spinner"></div>
             <p>다른 참가자를 연결하는 중...</p>
           </div>
-        ) : (
-          <>
-            <div className="game-info">
-              {lastMessage && (
-                <div className={`game-message ${waitingForPlayer ? 'highlight' : ''}`}>
-                  {lastMessage}
-                </div>
-              )}
-            </div>
-
-            <div className="game-board">
-              <canvas
-                ref={canvasRef}
-                className="cyberball-canvas"
-                style={{
-                  width: '100%',
-                  maxWidth: `${CANVAS_WIDTH}px`,
-                  height: 'auto',
-                  aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
-                }}
-              />
-            </div>
-          </>
         )}
+
+        {/* 캔버스는 항상 DOM에 존재하지만, 게임 화면이 아닐 때는 숨김 */}
+        <div style={{ display: canvasVisible ? 'block' : 'none' }}>
+          <div className="game-info">
+            {lastMessage && (
+              <div className={`game-message ${waitingForPlayer ? 'highlight' : ''}`}>
+                {lastMessage}
+              </div>
+            )}
+          </div>
+
+          <div className="game-board">
+            <canvas
+              ref={canvasRef}
+              className="cyberball-canvas"
+              width={CANVAS_WIDTH}
+              height={CANVAS_HEIGHT}
+              style={{
+                width: '100%',
+                maxWidth: `${CANVAS_WIDTH}px`,
+                height: 'auto',
+                aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
+              }}
+            />
+          </div>
+        </div>
 
         <div className="progress-indicator">
           <div className="progress-dot completed"></div>
