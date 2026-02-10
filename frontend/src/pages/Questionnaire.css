@@ -1,0 +1,278 @@
+.questionnaire-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 100%);
+  padding: 2rem 1rem;
+}
+
+.questionnaire-panel {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 2.5rem;
+  max-width: 720px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* 헤더 */
+.questionnaire-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.questionnaire-header h1 {
+  font-size: 2rem;
+  color: #fff;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 15px rgba(100, 200, 255, 0.6);
+}
+
+.questionnaire-desc {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* 척도 범례 */
+.scale-legend {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 2rem;
+  padding: 1rem 1.5rem;
+  background: rgba(100, 181, 246, 0.08);
+  border-radius: 12px;
+  border: 1px solid rgba(100, 181, 246, 0.15);
+  flex-wrap: wrap;
+}
+
+.scale-legend-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 55px;
+}
+
+.scale-num {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(100, 181, 246, 0.2);
+  color: #64b5f6;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scale-text {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.65rem;
+  text-align: center;
+  white-space: pre-line;
+  line-height: 1.2;
+}
+
+/* 질문 리스트 */
+.questions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.question-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1.2rem 1.5rem;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.question-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(100, 181, 246, 0.2);
+}
+
+.question-card.answered {
+  border-color: rgba(100, 181, 246, 0.25);
+  background: rgba(100, 181, 246, 0.04);
+}
+
+.question-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(100, 181, 246, 0.15);
+  color: #64b5f6;
+  font-weight: 700;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.question-text {
+  flex: 1;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin: 0;
+  min-width: 0;
+}
+
+/* Likert 스케일 */
+.likert-scale {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.likert-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.likert-btn:hover {
+  border-color: rgba(100, 181, 246, 0.5);
+  color: #64b5f6;
+  background: rgba(100, 181, 246, 0.1);
+}
+
+.likert-btn.selected {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-color: transparent;
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+}
+
+/* 5점 척도일 때 좀 더 큰 버튼 */
+.five-point .likert-btn {
+  width: 40px;
+  height: 40px;
+  font-size: 0.85rem;
+}
+
+/* 하단 */
+.questionnaire-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.progress-text {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9rem;
+}
+
+.questionnaire-footer .next-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.9rem 2rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.questionnaire-footer .next-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.questionnaire-footer .next-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 프로그레스 인디케이터 */
+.progress-indicator {
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 2rem;
+}
+
+.progress-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.progress-dot.active {
+  background: #64b5f6;
+  box-shadow: 0 0 8px rgba(100, 181, 246, 0.8);
+  transform: scale(1.2);
+}
+
+.progress-dot.completed {
+  background: rgba(100, 181, 246, 0.5);
+}
+
+/* 반응형 */
+@media (max-width: 600px) {
+  .questionnaire-panel {
+    padding: 1.5rem;
+  }
+
+  .questionnaire-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .question-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.8rem;
+  }
+
+  .likert-scale {
+    align-self: center;
+  }
+
+  .likert-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+  }
+
+  .scale-legend {
+    gap: 6px;
+    padding: 0.8rem;
+  }
+
+  .scale-legend-item {
+    min-width: 40px;
+  }
+
+  .questionnaire-footer {
+    flex-direction: column;
+  }
+}

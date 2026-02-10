@@ -54,7 +54,7 @@ function UserInfo() {
       });
       
       setScreen(1);
-      navigate('/game');
+      navigate('/aaq');
     } catch (err) {
       console.error('Error creating user:', err);
       setError(err.response?.data?.detail || '사용자 생성 중 오류가 발생했습니다');
@@ -130,6 +130,7 @@ function UserInfo() {
         
         <div className="progress-indicator">
           <div className="progress-dot active"></div>
+          <div className="progress-dot"></div>
           <div className="progress-dot"></div>
           <div className="progress-dot"></div>
           <div className="progress-dot"></div>
