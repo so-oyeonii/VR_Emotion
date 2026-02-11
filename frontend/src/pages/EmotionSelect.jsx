@@ -3,23 +3,24 @@ import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
 import './EmotionSelect.css';
 
+// GEW 프레임워크 + Jonauskaite et al. 실증 데이터 기반 색상
 const EMOTIONS = [
-  { name: '분노', color: '#DC143C', desc: '화가 나거나 짜증이 난 느낌' },
-  { name: '슬픔', color: '#4169E1', desc: '우울하거나 기운이 없는 느낌' },
-  { name: '소외감', color: '#8B4513', desc: '혼자 남겨진 느낌, 무시당한 느낌' },
-  { name: '수치심', color: '#800080', desc: '부끄럽거나 창피한 느낌' },
-  { name: '불안', color: '#FF8C00', desc: '걱정되거나 초조한 느낌' },
-  { name: '무관심', color: '#708090', desc: '아무 감정도 들지 않는 느낌' },
-  { name: '두려움', color: '#4B0082', desc: '무섭거나 겁이 나는 느낌' },
-  { name: '좌절감', color: '#B22222', desc: '답답하고 막막한 느낌' },
-  { name: '놀람', color: '#FF69B4', desc: '예상치 못한 일에 놀란 느낌' },
-  { name: '평온', color: '#87CEEB', desc: '편안하고 차분한 느낌' },
+  { name: '분노', hex: '#D32F2F', desc: '화가 나거나 짜증이 난 느낌' },
+  { name: '슬픔', hex: '#1565C0', desc: '우울하거나 기운이 없는 느낌' },
+  { name: '소외감', hex: '#607D8B', desc: '혼자 남겨진 느낌, 무시당한 느낌' },
+  { name: '수치심', hex: '#6A1B9A', desc: '부끄럽거나 창피한 느낌' },
+  { name: '불안', hex: '#2E7D32', desc: '걱정되거나 초조한 느낌' },
+  { name: '무관심', hex: '#8D6E63', desc: '아무 감정도 들지 않는 느낌' },
+  { name: '두려움', hex: '#263238', desc: '무섭거나 겁이 나는 느낌' },
+  { name: '좌절감', hex: '#E64A19', desc: '답답하고 막막한 느낌' },
+  { name: '놀람', hex: '#F9A825', desc: '예상치 못한 일에 놀란 느낌' },
+  { name: '평온', hex: '#00ACC1', desc: '편안하고 차분한 느낌' },
 ];
 
 function EmotionSelect() {
   const navigate = useNavigate();
   const { userData, setScreen } = useStore();
-  const [selected, setSelected] = useState([]); // [{ name, color, intensity }]
+  const [selected, setSelected] = useState([]); // [{ name, hex, intensity }]
   const [error, setError] = useState('');
 
   if (!userData.userId) {
@@ -31,14 +32,13 @@ function EmotionSelect() {
     setError('');
     const idx = selected.findIndex((s) => s.name === emotion.name);
     if (idx !== -1) {
-      // 선택 해제
       setSelected(selected.filter((_, i) => i !== idx));
     } else {
       if (selected.length >= 3) {
         setError('최대 3개까지 선택할 수 있습니다');
         return;
       }
-      setSelected([...selected, { name: emotion.name, color: emotion.color, intensity: 5 }]);
+      setSelected([...selected, { name: emotion.name, hex: emotion.hex, intensity: 5 }]);
     }
   };
 
@@ -56,18 +56,16 @@ function EmotionSelect() {
       return;
     }
 
-    // 스토어에 저장
     const store = useStore.getState();
     store.clearSelectedEmotions();
     selected.forEach((s) => {
-      store.addSelectedEmotion(s.name, s.color);
+      store.addSelectedEmotion(s.name, s.hex);
     });
 
-    // 강도도 바로 설정
     useStore.setState({
       emotionIntensities: selected.map((s, i) => ({
         emotion: s.name,
-        color: s.color,
+        color: s.hex,
         intensity: s.intensity,
         sequence_order: i + 1,
       })),
@@ -87,18 +85,32 @@ function EmotionSelect() {
           </p>
         </div>
 
-        <div className="emotion-grid">
-          {EMOTIONS.map((emotion) => (
-            <button
-              key={emotion.name}
-              className={`emotion-card ${isSelected(emotion.name) ? 'active' : ''}`}
-              style={{ '--emotion-color': emotion.color }}
-              onClick={() => toggleEmotion(emotion)}
-            >
-              <span className="emotion-card-name">{emotion.name}</span>
-              <span className="emotion-card-desc">{emotion.desc}</span>
-            </button>
-          ))}
+        {/* 구체 그리드 */}
+        <div className="sphere-grid">
+          {EMOTIONS.map((emotion) => {
+            const active = isSelected(emotion.name);
+            return (
+              <button
+                key={emotion.name}
+                className={`sphere-item ${active ? 'active' : ''}`}
+                onClick={() => toggleEmotion(emotion)}
+              >
+                <div
+                  className="sphere"
+                  style={{
+                    '--sphere-color': emotion.hex,
+                    '--sphere-light': lighten(emotion.hex, 90),
+                    '--sphere-glow': `${emotion.hex}60`,
+                  }}
+                >
+                  <div className="sphere-shine"></div>
+                </div>
+                <span className="sphere-name">{emotion.name}</span>
+                <span className="sphere-desc">{emotion.desc}</span>
+                {active && <div className="sphere-check">&#10003;</div>}
+              </button>
+            );
+          })}
         </div>
 
         {/* 선택된 감정의 강도 설정 */}
@@ -109,14 +121,22 @@ function EmotionSelect() {
 
             <div className="intensity-list">
               {selected.map((s) => (
-                <div key={s.name} className="intensity-item" style={{ '--emotion-color': s.color }}>
+                <div key={s.name} className="intensity-item" style={{ '--emotion-color': s.hex }}>
                   <div className="intensity-label">
-                    <span className="intensity-dot" style={{ background: s.color }}></span>
+                    <div
+                      className="intensity-sphere-mini"
+                      style={{
+                        '--sphere-color': s.hex,
+                        '--sphere-light': lighten(s.hex, 90),
+                      }}
+                    >
+                      <div className="sphere-shine-mini"></div>
+                    </div>
                     <span className="intensity-name">{s.name}</span>
                     <span className="intensity-value">{s.intensity}</span>
                   </div>
                   <div className="slider-container">
-                    <span className="slider-min">1</span>
+                    <span className="slider-min">약하게</span>
                     <input
                       type="range"
                       min="1"
@@ -125,23 +145,26 @@ function EmotionSelect() {
                       onChange={(e) => setIntensity(s.name, Number(e.target.value))}
                       className="intensity-slider"
                       style={{
-                        '--slider-color': s.color,
+                        '--slider-color': s.hex,
                         '--slider-progress': `${((s.intensity - 1) / 9) * 100}%`,
                       }}
                     />
-                    <span className="slider-max">10</span>
+                    <span className="slider-max">강하게</span>
                   </div>
-                  {/* 강도에 따른 버블 미리보기 */}
+                  {/* 강도에 따른 구체 크기 미리보기 */}
                   <div className="bubble-preview">
                     <div
-                      className="bubble"
+                      className="bubble-sphere"
                       style={{
-                        width: `${20 + s.intensity * 6}px`,
-                        height: `${20 + s.intensity * 6}px`,
-                        background: `radial-gradient(circle at 35% 35%, ${lighten(s.color)}, ${s.color})`,
-                        boxShadow: `0 0 ${s.intensity * 3}px ${s.color}40`,
+                        width: `${24 + s.intensity * 5}px`,
+                        height: `${24 + s.intensity * 5}px`,
+                        '--sphere-color': s.hex,
+                        '--sphere-light': lighten(s.hex, 90),
+                        '--sphere-glow': `${s.hex}${Math.round(30 + s.intensity * 7).toString(16)}`,
                       }}
-                    ></div>
+                    >
+                      <div className="sphere-shine-mini"></div>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -174,11 +197,11 @@ function EmotionSelect() {
   );
 }
 
-function lighten(hex) {
+function lighten(hex, amount) {
   const num = parseInt(hex.replace('#', ''), 16);
-  const r = Math.min(255, (num >> 16) + 80);
-  const g = Math.min(255, ((num >> 8) & 0xFF) + 80);
-  const b = Math.min(255, (num & 0xFF) + 80);
+  const r = Math.min(255, (num >> 16) + amount);
+  const g = Math.min(255, ((num >> 8) & 0xFF) + amount);
+  const b = Math.min(255, (num & 0xFF) + amount);
   return `rgb(${r}, ${g}, ${b})`;
 }
 

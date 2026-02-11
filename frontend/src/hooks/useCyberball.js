@@ -17,6 +17,28 @@ const POSITIONS = {
   agent2: { x: CANVAS_WIDTH - 90, y: 130, label: '참가자 C', color: '#2ECC71' },
 };
 
+// 포함 단계: 플레이어에게 보내는 긍정적 반응
+const INCLUSION_MESSAGES = [
+  { from: 'agent1', text: '나이스 캐치!' },
+  { from: 'agent2', text: '잘 받았어요!' },
+  { from: 'agent1', text: '좋은 패스!' },
+  { from: 'agent2', text: '역시 잘하네요~' },
+  { from: 'agent1', text: '센스 있다!' },
+  { from: 'agent2', text: '호흡이 좋아요!' },
+];
+
+// 배제 단계: 에이전트끼리만 대화 (플레이어 소외)
+const EXCLUSION_CHAT = [
+  { from: 'agent1', text: '우리 둘이 계속 하자!' },
+  { from: 'agent2', text: 'ㅋㅋ 좋아!' },
+  { from: 'agent1', text: '이거 재밌다~' },
+  { from: 'agent2', text: '나한테 다시 줘!' },
+  { from: 'agent1', text: '여기여기!' },
+  { from: 'agent2', text: '잘 받았지? ㅎㅎ' },
+  { from: 'agent1', text: '역시 우리끼리가 좋아' },
+  { from: 'agent2', text: '한 번 더!!' },
+];
+
 function lightenColor(hex, amount) {
   const num = parseInt(hex.replace('#', ''), 16);
   const r = Math.min(255, (num >> 16) + amount);
@@ -44,6 +66,32 @@ function drawBallShape(ctx, x, y) {
   ctx.stroke();
 }
 
+// 말풍선 그리기
+function drawChatBubble(ctx, x, y, text, isLeft) {
+  ctx.font = 'bold 11px "Segoe UI", Arial, sans-serif';
+  const metrics = ctx.measureText(text);
+  const padding = 8;
+  const w = metrics.width + padding * 2;
+  const h = 24;
+  const bx = isLeft ? x + PLAYER_RADIUS + 8 : x - PLAYER_RADIUS - 8 - w;
+  const by = y - PLAYER_RADIUS - 10;
+
+  // 말풍선 배경
+  ctx.beginPath();
+  ctx.roundRect(bx, by, w, h, 8);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // 텍스트
+  ctx.fillStyle = '#333';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, bx + padding, by + h / 2);
+}
+
 export function useCyberball(canvasRef) {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameOver, setGameOver] = useState(false);
@@ -55,6 +103,9 @@ export function useCyberball(canvasRef) {
   const [waitingForPlayer, setWaitingForPlayer] = useState(false);
   const [lastMessage, setLastMessage] = useState('');
   const [phase, setPhase] = useState('inclusion');
+  const [catchStreak, setCatchStreak] = useState(0);
+  const [agentChat, setAgentChat] = useState(null); // { from, text }
+  const [waitingSince, setWaitingSince] = useState(0); // 배제 때 공 못받은 시간
 
   // 모든 뮤터블 게임 상태를 ref에 보관 (리렌더링 없이 접근)
   const stateRef = useRef({
@@ -72,11 +123,16 @@ export function useCyberball(canvasRef) {
     elapsedTime: 0,
     waitingForPlayer: false,
     highlightedAgent: null,
+    catchStreak: 0,
+    chatBubble: null, // { from, text, timer }
+    lastPlayerReceiveTime: 0, // 마지막으로 공을 받은 시간
+    exclusionThrowCount: 0, // 배제 시작 후 에이전트 간 패스 수
   });
 
   const animFrameRef = useRef(null);
   const timerRef = useRef(null);
   const aiTimerRef = useRef(null);
+  const chatTimerRef = useRef(null);
 
   // AI throw를 ref로 저장 (순환 의존 방지)
   const aiThrowRef = useRef(null);
@@ -91,27 +147,42 @@ export function useCyberball(canvasRef) {
     if (!ctx) return;
     const s = stateRef.current;
 
-    // 배경
+    // 배경 (배제 단계에서 약간 더 어둡고 차가워짐)
     const bgGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-    bgGrad.addColorStop(0, '#0f1923');
-    bgGrad.addColorStop(1, '#1a1a2e');
+    if (s.phase === 'exclusion') {
+      bgGrad.addColorStop(0, '#080e14');
+      bgGrad.addColorStop(1, '#12121f');
+    } else {
+      bgGrad.addColorStop(0, '#0f1923');
+      bgGrad.addColorStop(1, '#1a1a2e');
+    }
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     // 경기장 원
     ctx.beginPath();
     ctx.ellipse(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10, 195, 175, 0, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(100, 181, 246, 0.08)';
+    ctx.strokeStyle = s.phase === 'exclusion'
+      ? 'rgba(100, 181, 246, 0.04)'
+      : 'rgba(100, 181, 246, 0.08)';
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // 연결선 (점선)
+    // 연결선 (점선) - 배제 시 플레이어와의 연결선 희미해짐
     ctx.setLineDash([4, 6]);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
     ctx.lineWidth = 1;
     const posArr = [POSITIONS.player, POSITIONS.agent1, POSITIONS.agent2];
     for (let i = 0; i < posArr.length; i++) {
       for (let j = i + 1; j < posArr.length; j++) {
+        const involvesPlayer = (posArr[i] === POSITIONS.player || posArr[j] === POSITIONS.player);
+        if (s.phase === 'exclusion' && involvesPlayer) {
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+        } else if (s.phase === 'exclusion') {
+          // 에이전트끼리 연결선 강조
+          ctx.strokeStyle = 'rgba(255, 215, 0, 0.1)';
+        } else {
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        }
         ctx.beginPath();
         ctx.moveTo(posArr[i].x, posArr[i].y);
         ctx.lineTo(posArr[j].x, posArr[j].y);
@@ -125,6 +196,10 @@ export function useCyberball(canvasRef) {
       const isCurrent = s.possession === key;
       const isHover = s.highlightedAgent === key;
       const isMe = key === 'player';
+
+      // 배제 단계에서 플레이어 아바타 투명도 조절
+      const playerDimmed = isMe && s.phase === 'exclusion' && !s.waitingForPlayer;
+      const alpha = playerDimmed ? 0.5 : 1.0;
 
       // 소유자 글로우
       if (isCurrent && !s.waitingForPlayer) {
@@ -144,6 +219,7 @@ export function useCyberball(canvasRef) {
       }
 
       // 아바타 원
+      ctx.globalAlpha = alpha;
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, PLAYER_RADIUS, 0, Math.PI * 2);
       const grad = ctx.createRadialGradient(pos.x - 10, pos.y - 10, 4, pos.x, pos.y, PLAYER_RADIUS);
@@ -155,16 +231,23 @@ export function useCyberball(canvasRef) {
       ctx.lineWidth = isCurrent ? 3 : 1.5;
       ctx.stroke();
 
-      // 아이콘 (모두 사람처럼)
+      // 아이콘
       ctx.font = '24px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(isMe ? '🙂' : '😊', pos.x, pos.y - 1);
+      if (isMe) {
+        // 배제 시 슬픈 표정
+        ctx.fillText(s.phase === 'exclusion' && !s.waitingForPlayer ? '😔' : '🙂', pos.x, pos.y - 1);
+      } else {
+        // 에이전트는 항상 즐거워 보임
+        ctx.fillText('😊', pos.x, pos.y - 1);
+      }
 
       // 이름
       ctx.fillStyle = '#ccc';
       ctx.font = 'bold 13px "Segoe UI", Arial, sans-serif';
       ctx.fillText(pos.label, pos.x, pos.y + PLAYER_RADIUS + 18);
+      ctx.globalAlpha = 1.0;
 
       if (isMe) {
         ctx.fillStyle = 'rgba(74, 144, 217, 0.7)';
@@ -172,6 +255,14 @@ export function useCyberball(canvasRef) {
         ctx.fillText('(나)', pos.x, pos.y + PLAYER_RADIUS + 32);
       }
     });
+
+    // 말풍선
+    if (s.chatBubble) {
+      const { from, text } = s.chatBubble;
+      const pos = POSITIONS[from];
+      const isLeft = from === 'agent1';
+      drawChatBubble(ctx, pos.x, pos.y, text, isLeft);
+    }
 
     // 공
     if (s.waitingForPlayer && !s.isAnimating) {
@@ -188,6 +279,14 @@ export function useCyberball(canvasRef) {
       drawBallShape(ctx, s.ballX, s.ballY);
     }
 
+    // 캐치 연속 표시 (포함 단계)
+    if (s.catchStreak >= 2 && s.phase === 'inclusion') {
+      ctx.fillStyle = 'rgba(255, 215, 0, 0.9)';
+      ctx.font = 'bold 13px "Segoe UI", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`🔥 ${s.catchStreak}연속 캐치!`, CANVAS_WIDTH / 2, CANVAS_HEIGHT - 20);
+    }
+
     // 게임 오버
     if (s.gameOver) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
@@ -201,6 +300,20 @@ export function useCyberball(canvasRef) {
       ctx.fillText('잠시 후 다음 단계로 이동합니다...', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
     }
   }, [canvasRef]);
+
+  // 말풍선 표시 함수
+  const showChat = useCallback((from, text) => {
+    const s = stateRef.current;
+    clearTimeout(chatTimerRef.current);
+    s.chatBubble = { from, text };
+    setAgentChat({ from, text });
+    draw();
+    chatTimerRef.current = setTimeout(() => {
+      s.chatBubble = null;
+      setAgentChat(null);
+      draw();
+    }, 1800);
+  }, [draw]);
 
   // === 공 애니메이션 ===
   const animateBall = useCallback((fromKey, toKey, onComplete) => {
@@ -254,13 +367,25 @@ export function useCyberball(canvasRef) {
 
       let target;
       if (s.phase === 'inclusion') {
+        // 포함: ~35% 확률로 플레이어에게
         target = Math.random() < 0.35 ? 'player' : otherAgent;
       } else {
-        target = Math.random() < 0.08 ? 'player' : otherAgent;
+        // 배제: ~5% 확률로 플레이어에게 (거의 안 옴)
+        target = Math.random() < 0.05 ? 'player' : otherAgent;
+        s.exclusionThrowCount++;
       }
 
       s.totalThrows++;
       setTotalThrows(s.totalThrows);
+
+      // 배제 단계에서 에이전트끼리 대화
+      if (s.phase === 'exclusion' && target !== 'player') {
+        // 3~5번마다 한 번씩 대화
+        if (s.exclusionThrowCount % 3 === 0) {
+          const msg = EXCLUSION_CHAT[Math.floor(Math.random() * EXCLUSION_CHAT.length)];
+          showChat(msg.from, msg.text);
+        }
+      }
 
       animateBall(currentPossessor, target, () => {
         s.possession = target;
@@ -268,17 +393,38 @@ export function useCyberball(canvasRef) {
 
         if (target === 'player') {
           s.playerReceiveCount++;
+          s.catchStreak++;
           s.waitingForPlayer = true;
+          s.lastPlayerReceiveTime = s.elapsedTime;
           setPlayerReceiveCount(s.playerReceiveCount);
+          setCatchStreak(s.catchStreak);
           setWaitingForPlayer(true);
-          setLastMessage('공이 당신에게 왔습니다!');
+          setWaitingSince(0);
+
+          // 포함 단계: 긍정적 메시지
+          if (s.phase === 'inclusion') {
+            const msg = INCLUSION_MESSAGES[Math.floor(Math.random() * INCLUSION_MESSAGES.length)];
+            showChat(currentPossessor, msg.text);
+            setLastMessage('공이 당신에게 왔습니다! 🎉');
+          } else {
+            setLastMessage('공이 당신에게 왔습니다!');
+          }
         } else {
-          const delay = 600 + Math.random() * 900;
+          // 배제 중 공을 오래 못 받으면 대기 시간 업데이트
+          if (s.phase === 'exclusion') {
+            const waitTime = s.elapsedTime - s.lastPlayerReceiveTime;
+            setWaitingSince(waitTime);
+          }
+
+          // 배제 단계에서 AI 패스 속도 빠르게 (더 활발하게 보이게)
+          const delay = s.phase === 'exclusion'
+            ? 350 + Math.random() * 400  // 빠른 패스
+            : 600 + Math.random() * 900; // 일반 속도
           aiTimerRef.current = setTimeout(() => aiThrowRef.current?.(), delay);
         }
       });
     };
-  }, [animateBall]);
+  }, [animateBall, showChat]);
 
   // === 플레이어 던지기 (ref에 저장) ===
   useEffect(() => {
@@ -298,11 +444,19 @@ export function useCyberball(canvasRef) {
       animateBall('player', targetKey, () => {
         s.possession = targetKey;
         setPossession(targetKey);
-        const delay = 500 + Math.random() * 700;
+
+        // 포함 단계: 에이전트 반응 메시지
+        if (s.phase === 'inclusion') {
+          showChat(targetKey, '잘 받았어요!');
+        }
+
+        const delay = s.phase === 'exclusion'
+          ? 350 + Math.random() * 400
+          : 500 + Math.random() * 700;
         aiTimerRef.current = setTimeout(() => aiThrowRef.current?.(), delay);
       });
     };
-  }, [animateBall]);
+  }, [animateBall, showChat]);
 
   // === 캔버스 이벤트 핸들러 (직접 등록) ===
   useEffect(() => {
@@ -368,6 +522,7 @@ export function useCyberball(canvasRef) {
       cancelAnimationFrame(animFrameRef.current);
       clearInterval(timerRef.current);
       clearTimeout(aiTimerRef.current);
+      clearTimeout(chatTimerRef.current);
     };
   }, [canvasRef, draw]);
 
@@ -384,6 +539,7 @@ export function useCyberball(canvasRef) {
     // 이전 게임 정리
     clearInterval(timerRef.current);
     clearTimeout(aiTimerRef.current);
+    clearTimeout(chatTimerRef.current);
     cancelAnimationFrame(animFrameRef.current);
 
     // 상태 초기화
@@ -400,6 +556,10 @@ export function useCyberball(canvasRef) {
     s.ballX = POSITIONS.agent1.x;
     s.ballY = POSITIONS.agent1.y;
     s.isAnimating = false;
+    s.catchStreak = 0;
+    s.chatBubble = null;
+    s.lastPlayerReceiveTime = 0;
+    s.exclusionThrowCount = 0;
 
     setGameStarted(true);
     setGameOver(false);
@@ -410,6 +570,9 @@ export function useCyberball(canvasRef) {
     setTotalThrows(0);
     setTimeLeft(GAME_DURATION);
     setWaitingForPlayer(false);
+    setCatchStreak(0);
+    setAgentChat(null);
+    setWaitingSince(0);
     setLastMessage('게임이 시작되었습니다!');
 
     // 타이머
@@ -418,10 +581,20 @@ export function useCyberball(canvasRef) {
       s.timeLeft = GAME_DURATION - s.elapsedTime;
       setTimeLeft(s.timeLeft);
 
+      // 배제 시 대기 시간 업데이트
+      if (s.phase === 'exclusion' && !s.waitingForPlayer) {
+        const waitTime = s.elapsedTime - s.lastPlayerReceiveTime;
+        setWaitingSince(waitTime);
+      }
+
       // 2분 후 배제 단계 전환
       if (s.elapsedTime >= INCLUSION_DURATION && s.phase === 'inclusion') {
         s.phase = 'exclusion';
+        s.catchStreak = 0;
+        s.lastPlayerReceiveTime = s.elapsedTime;
         setPhase('exclusion');
+        setCatchStreak(0);
+        draw();
       }
 
       if (s.timeLeft <= 0) {
@@ -431,6 +604,7 @@ export function useCyberball(canvasRef) {
         setGameStarted(false);
         clearInterval(timerRef.current);
         clearTimeout(aiTimerRef.current);
+        clearTimeout(chatTimerRef.current);
         draw();
       }
     }, 1000);
@@ -459,6 +633,9 @@ export function useCyberball(canvasRef) {
     waitingForPlayer,
     lastMessage,
     phase,
+    catchStreak,
+    agentChat,
+    waitingSince,
     startGame,
     throwTo,
     CANVAS_WIDTH,

@@ -19,11 +19,13 @@ function CyberballGame() {
     lastMessage,
     timeLeft,
     phase,
+    catchStreak,
+    waitingSince,
+    playerReceiveCount,
     startGame,
     throwTo,
     CANVAS_WIDTH,
     CANVAS_HEIGHT,
-    GAME_DURATION,
   } = useCyberball(canvasRef);
 
   // 사용자 데이터 체크
@@ -56,22 +58,27 @@ function CyberballGame() {
     setShowCoverStory(false);
     setShowLoading(true);
 
-    // 로딩 표시 후 2초 뒤 게임 시작
     setTimeout(() => {
       setShowLoading(false);
       setReadyToStart(true);
     }, 2000);
   };
 
-  // 캔버스가 보이는지 여부
   const canvasVisible = !showCoverStory && !showLoading;
-
-  // 남은 시간 포맷
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
+  // 배제 대기 메시지
+  const getWaitMessage = () => {
+    if (waitingForPlayer) return null;
+    if (phase !== 'exclusion') return '다른 참가자가 공을 던지고 있습니다...';
+    if (waitingSince > 30) return '공이 한동안 오지 않고 있습니다...';
+    if (waitingSince > 15) return '다른 참가자들끼리 공을 주고받고 있습니다...';
+    return '다른 참가자가 공을 던지고 있습니다...';
+  };
+
   return (
-    <div className="cyberball-container">
+    <div className={`cyberball-container ${phase === 'exclusion' ? 'exclusion-phase' : ''}`}>
       <div className="cyberball-panel">
         {showCoverStory && (
           <div className="cover-story">
@@ -119,12 +126,22 @@ function CyberballGame() {
             <div className="timer-display">
               {minutes}:{seconds.toString().padStart(2, '0')}
             </div>
-            {lastMessage && (
-              <div className={`game-message ${waitingForPlayer ? 'highlight' : ''}`}>
-                {lastMessage}
+            <div className="catch-counter">
+              받은 횟수: <strong>{playerReceiveCount}</strong>
+            </div>
+            {catchStreak >= 2 && phase === 'inclusion' && (
+              <div className="streak-badge">
+                {catchStreak}연속!
               </div>
             )}
           </div>
+
+          {/* 상태 메시지 */}
+          {lastMessage && (
+            <div className={`game-message-bar ${waitingForPlayer ? 'highlight' : ''}`}>
+              {lastMessage}
+            </div>
+          )}
 
           <div className="game-board">
             <canvas
@@ -164,7 +181,9 @@ function CyberballGame() {
                 </div>
               </>
             ) : (
-              <p className="throw-wait">다른 참가자가 공을 던지고 있습니다...</p>
+              <p className={`throw-wait ${phase === 'exclusion' && waitingSince > 15 ? 'dimmed' : ''}`}>
+                {getWaitMessage()}
+              </p>
             )}
           </div>
         </div>
