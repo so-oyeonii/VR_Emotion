@@ -99,7 +99,7 @@ function CyberballGame() {
                 </div>
                 <div className="rule-item">
                   <span className="rule-icon">2</span>
-                  <span>게임은 약 5분간 진행됩니다</span>
+                  <span>게임은 약 3분간 진행됩니다</span>
                 </div>
                 <div className="rule-item">
                   <span className="rule-icon">3</span>

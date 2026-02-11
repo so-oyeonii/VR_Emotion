@@ -6,9 +6,9 @@ const BALL_RADIUS = 12;
 const PLAYER_RADIUS = 35;
 const BALL_SPEED = 7;
 
-// Phase 2 timing: 포함 2분(120s) + 배제 3분(180s) = 총 5분(300s)
-const INCLUSION_DURATION = 120;
-const EXCLUSION_DURATION = 180;
+// Phase 2 timing: 포함 1분(60s) + 배제 2분(120s) = 총 3분(180s)
+const INCLUSION_DURATION = 60;
+const EXCLUSION_DURATION = 120;
 const GAME_DURATION = INCLUSION_DURATION + EXCLUSION_DURATION;
 
 const POSITIONS = {
