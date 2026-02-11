@@ -21,6 +21,7 @@ function CyberballGame() {
     phase,
     catchStreak,
     waitingSince,
+    throwTimer,
     playerReceiveCount,
     startGame,
     throwTo,
@@ -162,7 +163,14 @@ function CyberballGame() {
           <div className={`throw-buttons ${waitingForPlayer ? 'active' : ''}`}>
             {waitingForPlayer ? (
               <>
-                <p className="throw-prompt">공을 던질 상대를 선택하세요!</p>
+                <div className="throw-prompt-row">
+                  <p className="throw-prompt">공을 던질 상대를 선택하세요!</p>
+                  {throwTimer > 0 && (
+                    <div className={`throw-countdown ${throwTimer <= 2 ? 'urgent' : ''}`}>
+                      {throwTimer}초
+                    </div>
+                  )}
+                </div>
                 <div className="throw-btn-group">
                   <button
                     className="throw-btn throw-btn-b"

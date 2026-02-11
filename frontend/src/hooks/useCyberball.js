@@ -106,6 +106,7 @@ export function useCyberball(canvasRef) {
   const [catchStreak, setCatchStreak] = useState(0);
   const [agentChat, setAgentChat] = useState(null); // { from, text }
   const [waitingSince, setWaitingSince] = useState(0); // 배제 때 공 못받은 시간
+  const [throwTimer, setThrowTimer] = useState(0); // 5초 카운트다운
 
   // 모든 뮤터블 게임 상태를 ref에 보관 (리렌더링 없이 접근)
   const stateRef = useRef({
@@ -133,6 +134,8 @@ export function useCyberball(canvasRef) {
   const timerRef = useRef(null);
   const aiTimerRef = useRef(null);
   const chatTimerRef = useRef(null);
+  const throwTimerRef = useRef(null); // 5초 자동던지기 타이머
+  const throwCountdownRef = useRef(null); // 카운트다운 interval
 
   // AI throw를 ref로 저장 (순환 의존 방지)
   const aiThrowRef = useRef(null);
@@ -370,8 +373,8 @@ export function useCyberball(canvasRef) {
         // 포함: ~35% 확률로 플레이어에게
         target = Math.random() < 0.35 ? 'player' : otherAgent;
       } else {
-        // 배제: ~5% 확률로 플레이어에게 (거의 안 옴)
-        target = Math.random() < 0.05 ? 'player' : otherAgent;
+        // 배제: 절대 플레이어에게 보내지 않음 (0%)
+        target = otherAgent;
         s.exclusionThrowCount++;
       }
 
@@ -401,14 +404,33 @@ export function useCyberball(canvasRef) {
           setWaitingForPlayer(true);
           setWaitingSince(0);
 
-          // 포함 단계: 긍정적 메시지
-          if (s.phase === 'inclusion') {
-            const msg = INCLUSION_MESSAGES[Math.floor(Math.random() * INCLUSION_MESSAGES.length)];
-            showChat(currentPossessor, msg.text);
-            setLastMessage('공이 당신에게 왔습니다! 🎉');
-          } else {
-            setLastMessage('공이 당신에게 왔습니다!');
-          }
+          // 5초 카운트다운 시작
+          s.throwTimeLeft = 5;
+          setThrowTimer(5);
+          clearInterval(throwCountdownRef.current);
+          clearTimeout(throwTimerRef.current);
+
+          throwCountdownRef.current = setInterval(() => {
+            s.throwTimeLeft--;
+            setThrowTimer(s.throwTimeLeft);
+            if (s.throwTimeLeft <= 0) {
+              clearInterval(throwCountdownRef.current);
+            }
+          }, 1000);
+
+          // 5초 후 자동 던지기
+          throwTimerRef.current = setTimeout(() => {
+            clearInterval(throwCountdownRef.current);
+            if (s.waitingForPlayer && !s.isAnimating && !s.gameOver) {
+              const autoTarget = Math.random() < 0.5 ? 'agent1' : 'agent2';
+              playerThrowRef.current?.(autoTarget);
+            }
+          }, 5000);
+
+          // 포함 단계에서만 공이 오므로 긍정적 메시지
+          const msg = INCLUSION_MESSAGES[Math.floor(Math.random() * INCLUSION_MESSAGES.length)];
+          showChat(currentPossessor, msg.text);
+          setLastMessage('공이 당신에게 왔습니다! 🎉');
         } else {
           // 배제 중 공을 오래 못 받으면 대기 시간 업데이트
           if (s.phase === 'exclusion') {
@@ -432,6 +454,11 @@ export function useCyberball(canvasRef) {
       const s = stateRef.current;
       if (!s.waitingForPlayer || s.isAnimating || s.gameOver) return;
       if (targetKey === 'player') return;
+
+      // 5초 타이머 정리
+      clearTimeout(throwTimerRef.current);
+      clearInterval(throwCountdownRef.current);
+      setThrowTimer(0);
 
       s.waitingForPlayer = false;
       s.throwCount++;
@@ -523,6 +550,8 @@ export function useCyberball(canvasRef) {
       clearInterval(timerRef.current);
       clearTimeout(aiTimerRef.current);
       clearTimeout(chatTimerRef.current);
+      clearTimeout(throwTimerRef.current);
+      clearInterval(throwCountdownRef.current);
     };
   }, [canvasRef, draw]);
 
@@ -573,6 +602,7 @@ export function useCyberball(canvasRef) {
     setCatchStreak(0);
     setAgentChat(null);
     setWaitingSince(0);
+    setThrowTimer(0);
     setLastMessage('게임이 시작되었습니다!');
 
     // 타이머
@@ -636,6 +666,7 @@ export function useCyberball(canvasRef) {
     catchStreak,
     agentChat,
     waitingSince,
+    throwTimer,
     startGame,
     throwTo,
     CANVAS_WIDTH,
