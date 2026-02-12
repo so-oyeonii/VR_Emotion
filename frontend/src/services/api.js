@@ -10,27 +10,10 @@ const api = axios.create({
   },
 });
 
-// Request interceptor
-api.interceptors.request.use(
-  (config) => {
-    console.log('API Request:', config.method?.toUpperCase(), config.url);
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
 // Response interceptor
 api.interceptors.response.use(
-  (response) => {
-    console.log('API Response:', response.status, response.config.url);
-    return response;
-  },
-  (error) => {
-    console.error('API Error:', error.response?.status, error.message);
-    return Promise.reject(error);
-  }
+  (response) => response,
+  (error) => Promise.reject(error)
 );
 
 // API functions
@@ -39,23 +22,8 @@ export const createUser = async (userData) => {
   return response.data;
 };
 
-export const getUser = async (userId) => {
-  const response = await api.get(`/users/${userId}`);
-  return response.data;
-};
-
-export const createEmotion = async (emotionData) => {
-  const response = await api.post('/emotions/', emotionData);
-  return response.data;
-};
-
 export const createEmotionsBatch = async (userId, emotions) => {
   const response = await api.post(`/emotions/batch?user_id=${userId}`, emotions);
-  return response.data;
-};
-
-export const getUserEmotions = async (userId) => {
-  const response = await api.get(`/emotions/user/${userId}`);
   return response.data;
 };
 

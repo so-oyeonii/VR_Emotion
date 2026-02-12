@@ -39,33 +39,7 @@ const useStore = create((set) => ({
     };
   }),
 
-  removeSelectedEmotion: (index) => set((state) => ({
-    selectedEmotions: state.selectedEmotions.filter((_, i) => i !== index)
-  })),
-
   clearSelectedEmotions: () => set({ selectedEmotions: [] }),
-
-  setIntensity: (index, intensity) => set((state) => {
-    const newIntensities = [...state.emotionIntensities];
-    newIntensities[index] = {
-      ...newIntensities[index],
-      intensity
-    };
-    return { emotionIntensities: newIntensities };
-  }),
-
-  initializeIntensities: () => set((state) => ({
-    emotionIntensities: state.selectedEmotions.map((item, index) => ({
-      emotion: item.emotion,
-      color: item.color,
-      intensity: 5,
-      sequence_order: index + 1
-    }))
-  })),
-
-  nextScreen: () => set((state) => ({
-    currentScreen: Math.min(state.currentScreen + 1, 5)
-  })),
 
   setScreen: (screen) => set({ currentScreen: screen }),
 
