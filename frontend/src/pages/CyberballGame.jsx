@@ -18,9 +18,6 @@ function CyberballGame() {
     waitingForPlayer,
     lastMessage,
     timeLeft,
-    phase,
-    catchStreak,
-    waitingSince,
     throwTimer,
     playerReceiveCount,
     startGame,
@@ -69,17 +66,8 @@ function CyberballGame() {
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
-  // 배제 대기 메시지
-  const getWaitMessage = () => {
-    if (waitingForPlayer) return null;
-    if (phase !== 'exclusion') return '다른 참가자가 공을 던지고 있습니다...';
-    if (waitingSince > 30) return '공이 한동안 오지 않고 있습니다...';
-    if (waitingSince > 15) return '다른 참가자들끼리 공을 주고받고 있습니다...';
-    return '다른 참가자가 공을 던지고 있습니다...';
-  };
-
   return (
-    <div className={`cyberball-container ${phase === 'exclusion' ? 'exclusion-phase' : ''}`}>
+    <div className="cyberball-container">
       <div className="cyberball-panel">
         {showCoverStory && (
           <div className="cover-story">
@@ -130,11 +118,6 @@ function CyberballGame() {
             <div className="catch-counter">
               받은 횟수: <strong>{playerReceiveCount}</strong>
             </div>
-            {catchStreak >= 2 && phase === 'inclusion' && (
-              <div className="streak-badge">
-                {catchStreak}연속!
-              </div>
-            )}
           </div>
 
           {/* 상태 메시지 */}
@@ -189,8 +172,8 @@ function CyberballGame() {
                 </div>
               </>
             ) : (
-              <p className={`throw-wait ${phase === 'exclusion' && waitingSince > 15 ? 'dimmed' : ''}`}>
-                {getWaitMessage()}
+              <p className="throw-wait">
+                다른 참가자가 공을 던지고 있습니다...
               </p>
             )}
           </div>

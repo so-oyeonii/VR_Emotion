@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
+import { createEmotionsBatch } from '../services/api';
 import './EmotionSelect.css';
 
 // GEW 프레임워크 + Jonauskaite et al. 실증 데이터 기반 색상
@@ -50,29 +51,40 @@ function EmotionSelect() {
 
   const isSelected = (name) => selected.some((s) => s.name === name);
 
-  const handleNext = () => {
+  const [saving, setSaving] = useState(false);
+
+  const handleNext = async () => {
     if (selected.length === 0) {
       setError('최소 1개의 감정을 선택해주세요');
       return;
     }
+    if (saving) return;
+    setSaving(true);
 
-    const store = useStore.getState();
-    store.clearSelectedEmotions();
-    selected.forEach((s) => {
-      store.addSelectedEmotion(s.name, s.hex);
-    });
+    const emotionData = selected.map((s, i) => ({
+      emotion: s.name,
+      color: s.hex,
+      intensity: s.intensity,
+      sequence_order: i + 1,
+    }));
 
-    useStore.setState({
-      emotionIntensities: selected.map((s, i) => ({
-        emotion: s.name,
-        color: s.hex,
-        intensity: s.intensity,
-        sequence_order: i + 1,
-      })),
-    });
+    try {
+      await createEmotionsBatch(userData.userId, emotionData);
 
-    setScreen(5);
-    navigate('/complete');
+      const store = useStore.getState();
+      store.clearSelectedEmotions();
+      selected.forEach((s) => {
+        store.addSelectedEmotion(s.name, s.hex);
+      });
+      useStore.setState({ emotionIntensities: emotionData });
+
+      setScreen(5);
+      navigate('/complete');
+    } catch (err) {
+      console.error('감정 저장 오류:', err);
+      setError('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+      setSaving(false);
+    }
   };
 
   return (

@@ -1,33 +1,34 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
+import { savePANASResponses } from '../services/api';
 import './Questionnaire.css';
 
 // PANAS (Positive and Negative Affect Schedule)
 // 5-point Likert scale: 1(전혀 그렇지 않다) ~ 5(매우 그렇다)
 const PANAS_ITEMS = [
   // Positive Affect (PA)
-  { text: '관심이 있는', type: 'PA' },
-  { text: '흥분된', type: 'PA' },
-  { text: '강한', type: 'PA' },
-  { text: '열정적인', type: 'PA' },
-  { text: '자랑스러운', type: 'PA' },
-  { text: '기민한', type: 'PA' },
-  { text: '고무된', type: 'PA' },
-  { text: '결연한', type: 'PA' },
-  { text: '주의 깊은', type: 'PA' },
-  { text: '활기찬', type: 'PA' },
+  { text: '관심이 있는', type: 'PA', key: 'interested' },
+  { text: '흥분된', type: 'PA', key: 'excited' },
+  { text: '강한', type: 'PA', key: 'strong' },
+  { text: '열정적인', type: 'PA', key: 'enthusiastic' },
+  { text: '자랑스러운', type: 'PA', key: 'proud' },
+  { text: '기민한', type: 'PA', key: 'alert' },
+  { text: '고무된', type: 'PA', key: 'inspired' },
+  { text: '결연한', type: 'PA', key: 'determined' },
+  { text: '주의 깊은', type: 'PA', key: 'attentive' },
+  { text: '활기찬', type: 'PA', key: 'active' },
   // Negative Affect (NA)
-  { text: '괴로운', type: 'NA' },
-  { text: '속상한', type: 'NA' },
-  { text: '죄책감이 드는', type: 'NA' },
-  { text: '겁먹은', type: 'NA' },
-  { text: '적대적인', type: 'NA' },
-  { text: '짜증나는', type: 'NA' },
-  { text: '부끄러운', type: 'NA' },
-  { text: '초조한', type: 'NA' },
-  { text: '불안한', type: 'NA' },
-  { text: '두려운', type: 'NA' },
+  { text: '괴로운', type: 'NA', key: 'distressed' },
+  { text: '속상한', type: 'NA', key: 'upset' },
+  { text: '죄책감이 드는', type: 'NA', key: 'guilty' },
+  { text: '겁먹은', type: 'NA', key: 'scared' },
+  { text: '적대적인', type: 'NA', key: 'hostile' },
+  { text: '짜증나는', type: 'NA', key: 'irritable' },
+  { text: '부끄러운', type: 'NA', key: 'ashamed' },
+  { text: '초조한', type: 'NA', key: 'nervous' },
+  { text: '불안한', type: 'NA', key: 'jittery' },
+  { text: '두려운', type: 'NA', key: 'afraid' },
 ];
 
 const SCALE_LABELS = [
@@ -56,15 +57,25 @@ function PANAS() {
 
   const allAnswered = responses.every((r) => r !== null);
 
-  const handleNext = () => {
-    if (!allAnswered) return;
-    useStore.getState().setPANASResponses(responses.map((val, idx) => ({
-      item: PANAS_ITEMS[idx].text,
+  const [saving, setSaving] = useState(false);
+
+  const handleNext = async () => {
+    if (!allAnswered || saving) return;
+    setSaving(true);
+    const panasData = responses.map((val, idx) => ({
+      item: PANAS_ITEMS[idx].key,
       type: PANAS_ITEMS[idx].type,
       value: val,
-    })));
-    setScreen(3);
-    navigate('/game');
+    }));
+    try {
+      await savePANASResponses(userData.userId, panasData);
+      useStore.getState().setPANASResponses(panasData);
+      setScreen(3);
+      navigate('/game');
+    } catch (err) {
+      console.error('PANAS 저장 오류:', err);
+      setSaving(false);
+    }
   };
 
   return (

@@ -1,6 +1,6 @@
 # VR Emotion Research - 감정 외재화 연구 플랫폼
 
-React + FastAPI 기반의 사회적 배제(Cyberball) 실험 및 감정 데이터 수집 플랫폼
+React + Supabase 기반의 사회적 배제(Cyberball) 실험 및 감정 데이터 수집 플랫폼
 
 ## 프로젝트 개요
 
@@ -16,8 +16,8 @@ Phase 1: 사전 설문
 
 Phase 2: Cyberball 게임 (/game)
   포함 단계 (1분) → 배제 단계 (2분) = 총 3분
-  - 포함: ~35% 확률로 공이 옴, 에이전트 긍정 반응
-  - 배제: 0% 확률, 에이전트끼리만 교류
+  - 포함: ~35% 확률로 공이 옴
+  - 배제: 0% 확률 (화면 변화 없음, 원래 패러다임 준수)
 
 Phase 3: 감정 측정 (/emotion)
   GEW 색상 구체로 감정 선택 (최대 3개) + 강도 1-10
@@ -31,7 +31,7 @@ Phase 4: VR 체험 (/complete → VR 헤드셋)
 | 영역 | 기술 |
 |------|------|
 | Frontend | React 19 + Vite, Zustand, React Router |
-| Backend | FastAPI, SQLAlchemy, SQLite |
+| Database | Supabase (PostgreSQL, 무료 티어) |
 | 게임 | Canvas API (Cyberball) |
 | 감정 색상 | Jonauskaite et al. + GEW 프레임워크 |
 
@@ -53,48 +53,65 @@ VR_Emotion/
 │       ├── store/
 │       │   └── useStore.js         # Zustand 전역 상태
 │       ├── services/
-│       │   └── api.js              # API 통신
+│       │   ├── supabase.js         # Supabase 클라이언트
+│       │   └── api.js              # DB 통신 함수
 │       └── App.jsx                 # 라우팅
 │
-├── backend/
-│   └── app/
-│       ├── main.py                 # FastAPI 진입점
-│       ├── models/                 # SQLAlchemy 모델
-│       ├── schemas/                # Pydantic 스키마
-│       ├── routers/                # API 엔드포인트
-│       └── database.py             # DB 연결
-│
+├── supabase-schema.sql             # Supabase 테이블 생성 SQL
 └── README.md
 ```
 
 ## 시작하기
 
-### Backend
+### 1. Supabase 프로젝트 설정
 
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+1. [supabase.com](https://supabase.com)에서 무료 프로젝트 생성
+2. SQL Editor에서 `supabase-schema.sql` 실행 (테이블 + RLS 설정)
+3. Settings > API에서 URL과 anon key 복사
 
-### Frontend
+### 2. Frontend
 
 ```bash
 cd frontend
+cp .env.example .env
+# .env 파일에 Supabase URL과 anon key 입력
+
 npm install
 npm run dev
 ```
 
+## DB 스키마
+
+| 테이블 | 설명 | 컬럼 |
+|--------|------|------|
+| `users` | 참가자 정보 | id, name, birthdate, phone_last_four |
+| `aaq_responses` | AAQ-II 응답 | user_id, item_number(1-7), response(1-7) |
+| `panas_responses` | PANAS 응답 | user_id, item_text, item_type(PA/NA), response(1-5) |
+| `emotions` | 감정 선택 | user_id, emotion_name, intensity(1-10), color, sequence_order |
+
+## 데이터 내보내기
+
+Supabase 대시보드에서 별도 어드민 없이 CSV 다운로드 가능:
+- **Table Editor** > 테이블 선택 > CSV 다운로드
+- **SQL Editor** > 조인 쿼리 실행 > Export
+
+```sql
+SELECT u.name, u.birthdate, u.phone_last_four,
+       e.emotion_name, e.intensity, e.color, e.sequence_order
+FROM users u
+LEFT JOIN emotions e ON u.id = e.user_id
+ORDER BY u.created_at, e.sequence_order;
+```
+
 ## Cyberball 게임 설계
+
+Williams & Jarvis (2006) 원래 패러다임 준수:
 
 | 항목 | 포함 단계 | 배제 단계 |
 |------|-----------|-----------|
 | 시간 | 1분 | 2분 |
 | 공 확률 | ~35% | 0% |
-| AI 패스 속도 | 600-1500ms | 350-750ms |
-| 시각 효과 | 밝은 배경, 연결선 | 어두운 배경, 연결선 희미 |
-| 플레이어 이모지 | 🙂 | 😔 |
-| AI 대화 | "나이스 캐치!" 등 | "우리 둘이 계속 하자!" 등 |
+| 화면 변화 | 없음 | 없음 (원래 패러다임) |
 | 던지기 제한 | 5초 내 선택 (자동 던지기) | - |
 
 ## 감정 색상 (GEW + Jonauskaite et al.)
@@ -111,54 +128,6 @@ npm run dev
 | 좌절감 | `#E64A19` | 주황-분노 인접 |
 | 놀람 | `#F9A825` | 노랑-놀람 |
 | 평온 | `#00ACC1` | 청록-차분 |
-
-## API 엔드포인트
-
-- `POST /api/users/` — 사용자 생성
-- `GET /api/users/{id}` — 사용자 조회
-- `POST /api/emotions/batch` — 감정 데이터 일괄 저장
-- `GET /api/emotions/user/{id}` — 사용자 감정 조회
-
-## 배포하기
-
-### Vercel 배포 (프론트엔드)
-
-1. **Vercel 프로젝트 생성**
-   ```bash
-   npm install -g vercel
-   vercel login
-   vercel
-   ```
-
-2. **환경 변수 설정** (Vercel Dashboard)
-   - `VITE_API_BASE_URL`: 백엔드 API URL (예: `https://your-backend.com/api`)
-
-3. **자동 배포**: GitHub에 푸시하면 자동으로 배포됩니다
-
-### 백엔드 배포 (Render/Railway 추천)
-
-**Render 배포:**
-1. [Render](https://render.com)에 가입
-2. New Web Service 생성
-3. GitHub 저장소 연결
-4. 설정:
-   - Build Command: `pip install -r requirements.txt`
-   - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-   - Environment: Python 3.11+
-5. 환경 변수 설정:
-   - `DATABASE_URL`: PostgreSQL 연결 문자열
-   - `BACKEND_CORS_ORIGINS`: `["https://your-vercel-app.vercel.app"]`
-
-**Railway 배포:**
-1. [Railway](https://railway.app)에 가입
-2. New Project → Deploy from GitHub
-3. PostgreSQL 추가
-4. 환경 변수 자동 설정됨
-
-### 환경 변수 파일
-
-- `frontend/.env.example` — 프론트엔드 환경 변수 템플릿
-- `backend/.env.example` — 백엔드 환경 변수 템플릿
 
 ## 라이선스
 
