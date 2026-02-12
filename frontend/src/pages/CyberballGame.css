@@ -6,12 +6,6 @@
   background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 100%);
   position: relative;
   padding: 1rem;
-  transition: background 2s ease;
-}
-
-/* 배제 단계 배경 변화 (서서히 차갑게) */
-.cyberball-container.exclusion-phase {
-  background: linear-gradient(135deg, #060810 0%, #10101e 100%);
 }
 
 .cyberball-panel {
@@ -24,11 +18,6 @@
   width: 100%;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   text-align: center;
-  transition: border-color 2s ease;
-}
-
-.exclusion-phase .cyberball-panel {
-  border-color: rgba(255, 255, 255, 0.08);
 }
 
 /* 커버 스토리 */
@@ -166,22 +155,6 @@
   font-size: 1rem;
 }
 
-.streak-badge {
-  background: linear-gradient(135deg, #FF6B35, #FF8C00);
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 12px;
-  animation: streakPop 0.4s ease-out;
-}
-
-@keyframes streakPop {
-  0% { transform: scale(0.5); opacity: 0; }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); opacity: 1; }
-}
-
 /* 상태 메시지 바 */
 .game-message-bar {
   color: rgba(255, 255, 255, 0.65);
@@ -215,11 +188,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 2s ease;
-}
-
-.exclusion-phase .game-board {
-  border-color: rgba(100, 181, 246, 0.06);
 }
 
 .cyberball-canvas {
@@ -353,12 +321,6 @@
   color: rgba(255, 255, 255, 0.45);
   font-size: 0.9rem;
   font-style: italic;
-  transition: all 0.5s ease;
-}
-
-.throw-wait.dimmed {
-  color: rgba(255, 255, 255, 0.25);
-  font-size: 0.85rem;
 }
 
 /* 프로그레스 */
