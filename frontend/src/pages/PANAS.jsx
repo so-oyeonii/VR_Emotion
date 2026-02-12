@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
+import { savePANASResponses } from '../services/api';
 import './Questionnaire.css';
 
 // PANAS (Positive and Negative Affect Schedule)
@@ -56,15 +57,25 @@ function PANAS() {
 
   const allAnswered = responses.every((r) => r !== null);
 
-  const handleNext = () => {
-    if (!allAnswered) return;
-    useStore.getState().setPANASResponses(responses.map((val, idx) => ({
+  const [saving, setSaving] = useState(false);
+
+  const handleNext = async () => {
+    if (!allAnswered || saving) return;
+    setSaving(true);
+    const panasData = responses.map((val, idx) => ({
       item: PANAS_ITEMS[idx].text,
       type: PANAS_ITEMS[idx].type,
       value: val,
-    })));
-    setScreen(3);
-    navigate('/game');
+    }));
+    try {
+      await savePANASResponses(userData.userId, panasData);
+      useStore.getState().setPANASResponses(panasData);
+      setScreen(3);
+      navigate('/game');
+    } catch (err) {
+      console.error('PANAS 저장 오류:', err);
+      setSaving(false);
+    }
   };
 
   return (

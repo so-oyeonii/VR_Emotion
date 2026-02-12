@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
+import { saveAAQResponses } from '../services/api';
 import './Questionnaire.css';
 
 // AAQ-II (Acceptance and Action Questionnaire - II)
@@ -43,12 +44,20 @@ function AAQ() {
 
   const allAnswered = responses.every((r) => r !== null);
 
-  const handleNext = () => {
-    if (!allAnswered) return;
-    // AAQ-II 결과를 스토어에 저장
-    useStore.getState().setAAQResponses(responses);
-    setScreen(2);
-    navigate('/panas');
+  const [saving, setSaving] = useState(false);
+
+  const handleNext = async () => {
+    if (!allAnswered || saving) return;
+    setSaving(true);
+    try {
+      await saveAAQResponses(userData.userId, responses);
+      useStore.getState().setAAQResponses(responses);
+      setScreen(2);
+      navigate('/panas');
+    } catch (err) {
+      console.error('AAQ 저장 오류:', err);
+      setSaving(false);
+    }
   };
 
   return (

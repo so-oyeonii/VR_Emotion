@@ -44,7 +44,6 @@ function UserInfo() {
     
     try {
       const response = await createUser(formData);
-      console.log('User created:', response);
       
       setUserData({
         name: response.name,
@@ -57,7 +56,7 @@ function UserInfo() {
       navigate('/aaq');
     } catch (err) {
       console.error('Error creating user:', err);
-      setError(err.response?.data?.detail || '사용자 생성 중 오류가 발생했습니다');
+      setError(err.message || '사용자 생성 중 오류가 발생했습니다');
     } finally {
       setLoading(false);
     }
