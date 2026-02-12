@@ -119,6 +119,47 @@ npm run dev
 - `POST /api/emotions/batch` — 감정 데이터 일괄 저장
 - `GET /api/emotions/user/{id}` — 사용자 감정 조회
 
+## 배포하기
+
+### Vercel 배포 (프론트엔드)
+
+1. **Vercel 프로젝트 생성**
+   ```bash
+   npm install -g vercel
+   vercel login
+   vercel
+   ```
+
+2. **환경 변수 설정** (Vercel Dashboard)
+   - `VITE_API_BASE_URL`: 백엔드 API URL (예: `https://your-backend.com/api`)
+
+3. **자동 배포**: GitHub에 푸시하면 자동으로 배포됩니다
+
+### 백엔드 배포 (Render/Railway 추천)
+
+**Render 배포:**
+1. [Render](https://render.com)에 가입
+2. New Web Service 생성
+3. GitHub 저장소 연결
+4. 설정:
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - Environment: Python 3.11+
+5. 환경 변수 설정:
+   - `DATABASE_URL`: PostgreSQL 연결 문자열
+   - `BACKEND_CORS_ORIGINS`: `["https://your-vercel-app.vercel.app"]`
+
+**Railway 배포:**
+1. [Railway](https://railway.app)에 가입
+2. New Project → Deploy from GitHub
+3. PostgreSQL 추가
+4. 환경 변수 자동 설정됨
+
+### 환경 변수 파일
+
+- `frontend/.env.example` — 프론트엔드 환경 변수 템플릿
+- `backend/.env.example` — 백엔드 환경 변수 템플릿
+
 ## 라이선스
 
 연구 목적으로 개발되었습니다.

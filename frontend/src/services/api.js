@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Codespaces 환경에서는 /api로 프록시 사용
-const API_BASE_URL = '/api';
+// 환경 변수 사용 (개발: /api 프록시, 프로덕션: 백엔드 URL)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
